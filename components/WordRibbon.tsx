@@ -53,6 +53,7 @@ import {
   ZoomOut,
   Maximize2,
   ListTree,
+  RotateCcw,
 } from 'lucide-react';
 
 export type RibbonTab = 'home' | 'insert' | 'layout' | 'review' | 'view' | 'file';
@@ -137,6 +138,7 @@ export const WordRibbon: React.FC<WordRibbonProps> = ({
   isExporting,
 }) => {
   const { direction, language, t } = useLanguage();
+  const isAr = language === 'ar';
   const [activeTab, setActiveTab] = useState<RibbonTab>('home');
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showHighlightPicker, setShowHighlightPicker] = useState(false);
@@ -174,6 +176,18 @@ export const WordRibbon: React.FC<WordRibbonProps> = ({
     { label: 'Orange', hex: '#fed7aa' },
     { label: 'None', hex: 'transparent' },
   ];
+
+  const fonts = [
+    'Segoe UI',
+    'Cairo',
+    'Amiri',
+    'Traditional Arabic',
+    'Arial',
+    'Times New Roman',
+    'Inter',
+  ];
+
+  const fontSizes = [9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 32, 36];
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -219,8 +233,6 @@ export const WordRibbon: React.FC<WordRibbonProps> = ({
     onWrapSelection(`\n\n> [!${type.toUpperCase()}]\n> **${type.toUpperCase()}**: Add important message here.\n\n`);
   };
 
-  // Reusable button styles
-  // Reusable button styles with cohesive Word Ribbon finish
   const btnIconClass =
     'h-8 w-8 inline-flex items-center justify-center rounded-md border border-transparent text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-slate-300/80 dark:hover:border-slate-700 active:scale-95 transition-all duration-150 cursor-pointer shrink-0 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-500';
 
@@ -232,8 +244,17 @@ export const WordRibbon: React.FC<WordRibbonProps> = ({
 
   const dividerClass = 'h-6 w-px bg-slate-200 dark:bg-slate-800 mx-1 shrink-0';
 
+  const tabsList: { id: RibbonTab; labelAr: string; labelEn: string }[] = [
+    { id: 'home', labelAr: 'الرئيسية', labelEn: 'Home' },
+    { id: 'insert', labelAr: 'إدراج', labelEn: 'Insert' },
+    { id: 'layout', labelAr: 'التخطيط', labelEn: 'Layout' },
+    { id: 'review', labelAr: 'المراجعة', labelEn: 'Review' },
+    { id: 'view', labelAr: 'العرض', labelEn: 'View' },
+    { id: 'file', labelAr: 'ملف', labelEn: 'File' },
+  ];
+
   return (
-    <div className={`no-print w-full bg-white dark:bg-slate-900 select-none transition-colors ${activeTab === 'home' ? 'hidden' : 'border-b border-slate-200 dark:border-slate-800 shadow-xs'}`}>
+    <div className="no-print w-full bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-xs select-none transition-colors">
       {/* Hidden DOCX File Input */}
       <input
         ref={fileInputRef}
@@ -243,9 +264,355 @@ export const WordRibbon: React.FC<WordRibbonProps> = ({
         className="hidden"
       />
 
-      {/* Tab Action Strip (Selector 3) */}
-      {activeTab !== 'home' && (
-        <div className="px-3 sm:px-6 py-2.5 overflow-x-auto min-h-[62px] flex items-center gap-2 bg-white dark:bg-slate-900 border-b border-slate-200/80 dark:border-slate-800/80 shadow-2xs transition-colors">
+      {/* Top Ribbon Tabs Bar */}
+      <div className="flex items-center gap-1 px-3 sm:px-6 pt-1.5 bg-slate-100/80 dark:bg-slate-950/80 border-b border-slate-200 dark:border-slate-800 overflow-x-auto scrollbar-none">
+        {tabsList.map(tab => {
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-3.5 py-1.5 text-xs font-extrabold rounded-t-lg transition-all duration-150 cursor-pointer shrink-0 border-t border-x ${
+                isActive
+                  ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 border-slate-200 dark:border-slate-800 shadow-2xs -mb-px border-b-white dark:border-b-slate-900'
+                  : 'bg-transparent text-slate-600 dark:text-slate-400 border-transparent hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/60'
+              }`}
+            >
+              {isAr ? tab.labelAr : tab.labelEn}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Tab Action Strip */}
+      <div className="px-3 sm:px-6 py-2 overflow-x-auto min-h-[62px] flex items-center gap-2 bg-white dark:bg-slate-900 transition-colors scrollbar-none">
+        {/* ===================== TAB: HOME ===================== */}
+        {activeTab === 'home' && (
+          <div className="flex items-center gap-2 text-xs flex-nowrap">
+            {/* AI Insert Red Action Button */}
+            <button
+              type="button"
+              onClick={onOpenInsertModal}
+              className="h-8 px-3 inline-flex items-center gap-1.5 rounded-lg bg-red-600 hover:bg-red-700 active:scale-95 text-white font-extrabold text-xs shadow-sm shadow-red-600/30 transition-all cursor-pointer shrink-0"
+              title="Insert AI Content or Paste Markdown (Ctrl+K)"
+            >
+              <Sparkles className="h-4 w-4 animate-pulse" />
+              <span>{isAr ? 'إدراج محتوى ذكي (Ctrl+K)' : 'AI Insert (Ctrl+K)'}</span>
+            </button>
+
+            <div className={dividerClass} />
+
+            {/* Font Family & Size Group */}
+            <div className={groupCardClass}>
+              <select
+                value={formatting.fontFamily}
+                onChange={e => onChangeFormatting({ fontFamily: e.target.value })}
+                className="h-7 px-2 text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
+              >
+                {fonts.map(f => (
+                  <option key={f} value={f}>
+                    {f}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={formatting.fontSize}
+                onChange={e => onChangeFormatting({ fontSize: Number(e.target.value) })}
+                className="h-7 px-2 text-xs font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
+              >
+                {fontSizes.map(s => (
+                  <option key={s} value={s}>
+                    {s}pt
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className={dividerClass} />
+
+            {/* Font Styling Group (Bold, Italic, Underline, Strikethrough, Sub/Super) */}
+            <div className={groupCardClass}>
+              <button
+                type="button"
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => handleFormat('bold', undefined, '**', '**')}
+                className={btnIconClass}
+                title="Bold (Ctrl+B)"
+              >
+                <Bold className="h-4 w-4" />
+              </button>
+
+              <button
+                type="button"
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => handleFormat('italic', undefined, '*', '*')}
+                className={btnIconClass}
+                title="Italic (Ctrl+I)"
+              >
+                <Italic className="h-4 w-4" />
+              </button>
+
+              <button
+                type="button"
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => handleFormat('underline', undefined, '<u>', '</u>')}
+                className={btnIconClass}
+                title="Underline (Ctrl+U)"
+              >
+                <Underline className="h-4 w-4" />
+              </button>
+
+              <button
+                type="button"
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => handleFormat('strikeThrough', undefined, '~~', '~~')}
+                className={btnIconClass}
+                title="Strikethrough"
+              >
+                <Strikethrough className="h-4 w-4" />
+              </button>
+
+              <button
+                type="button"
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => handleFormat('subscript', undefined, '<sub>', '</sub>')}
+                className={btnIconClass}
+                title="Subscript"
+              >
+                <Subscript className="h-4 w-4" />
+              </button>
+
+              <button
+                type="button"
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => handleFormat('superscript', undefined, '<sup>', '</sup>')}
+                className={btnIconClass}
+                title="Superscript"
+              >
+                <Superscript className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className={dividerClass} />
+
+            {/* Color & Highlight Picker */}
+            <div className={groupCardClass}>
+              {/* Text Color Picker */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onMouseDown={e => e.preventDefault()}
+                  onClick={() => {
+                    setShowColorPicker(!showColorPicker);
+                    setShowHighlightPicker(false);
+                  }}
+                  className={btnIconClass}
+                  title="Text Color"
+                >
+                  <Palette className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                </button>
+
+                {showColorPicker && (
+                  <div className="absolute top-9 left-0 z-50 p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl w-44 space-y-1.5">
+                    <span className="text-[11px] font-bold text-slate-500 block px-1">
+                      Text Color
+                    </span>
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {textColors.map(c => (
+                        <button
+                          key={c.hex}
+                          type="button"
+                          onClick={() => handleApplyColor(c.hex)}
+                          className="h-6 w-6 rounded-md border border-slate-300 dark:border-slate-700 hover:scale-110 transition cursor-pointer"
+                          style={{ backgroundColor: c.hex }}
+                          title={c.label}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Highlight Picker */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onMouseDown={e => e.preventDefault()}
+                  onClick={() => {
+                    setShowHighlightPicker(!showHighlightPicker);
+                    setShowColorPicker(false);
+                  }}
+                  className={btnIconClass}
+                  title="Text Highlight Color"
+                >
+                  <Highlighter className="h-4 w-4 text-amber-500" />
+                </button>
+
+                {showHighlightPicker && (
+                  <div className="absolute top-9 left-0 z-50 p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl w-44 space-y-1.5">
+                    <span className="text-[11px] font-bold text-slate-500 block px-1">
+                      Highlight
+                    </span>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {highlightColors.map(c => (
+                        <button
+                          key={c.hex}
+                          type="button"
+                          onClick={() => handleApplyHighlight(c.hex)}
+                          className="h-6 w-full rounded-md border border-slate-300 dark:border-slate-700 text-[10px] font-bold hover:scale-105 transition cursor-pointer flex items-center justify-center"
+                          style={{ backgroundColor: c.hex === 'transparent' ? '#f1f5f9' : c.hex }}
+                        >
+                          {c.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Clear Formatting */}
+              <button
+                type="button"
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => handleFormat('removeFormat')}
+                className={btnIconClass}
+                title="Clear Formatting"
+              >
+                <RemoveFormatting className="h-4 w-4 text-slate-500" />
+              </button>
+            </div>
+
+            <div className={dividerClass} />
+
+            {/* Alignments Group */}
+            <div className={groupCardClass}>
+              <button
+                type="button"
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => handleFormat('justifyRight')}
+                className={btnIconClass}
+                title="Align Right (RTL)"
+              >
+                <AlignRight className="h-4 w-4" />
+              </button>
+
+              <button
+                type="button"
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => handleFormat('justifyCenter')}
+                className={btnIconClass}
+                title="Align Center"
+              >
+                <AlignCenter className="h-4 w-4" />
+              </button>
+
+              <button
+                type="button"
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => handleFormat('justifyLeft')}
+                className={btnIconClass}
+                title="Align Left (LTR)"
+              >
+                <AlignLeft className="h-4 w-4" />
+              </button>
+
+              <button
+                type="button"
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => handleFormat('justifyFull')}
+                className={btnIconClass}
+                title="Justify"
+              >
+                <AlignJustify className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className={dividerClass} />
+
+            {/* Lists & Indents */}
+            <div className={groupCardClass}>
+              <button
+                type="button"
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => onApplyBlockStyle('- ')}
+                className={btnIconClass}
+                title="Bulleted List"
+              >
+                <List className="h-4 w-4" />
+              </button>
+
+              <button
+                type="button"
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => onApplyBlockStyle('1. ')}
+                className={btnIconClass}
+                title="Numbered List"
+              >
+                <ListOrdered className="h-4 w-4" />
+              </button>
+
+              <button
+                type="button"
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => onApplyBlockStyle('- [ ] ')}
+                className={btnIconClass}
+                title="Task List"
+              >
+                <CheckSquare className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className={dividerClass} />
+
+            {/* Headings / Block Styles */}
+            <div className={groupCardClass}>
+              <button
+                type="button"
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => onApplyBlockStyle('# ')}
+                className={btnTextClass}
+                title="Heading 1"
+              >
+                <Heading1 className="h-4 w-4 text-indigo-600" />
+                <span>H1</span>
+              </button>
+
+              <button
+                type="button"
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => onApplyBlockStyle('## ')}
+                className={btnTextClass}
+                title="Heading 2"
+              >
+                <Heading2 className="h-4 w-4 text-indigo-600" />
+                <span>H2</span>
+              </button>
+
+              <button
+                type="button"
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => onApplyBlockStyle('### ')}
+                className={btnTextClass}
+                title="Heading 3"
+              >
+                <Heading3 className="h-4 w-4 text-indigo-600" />
+                <span>H3</span>
+              </button>
+
+              <button
+                type="button"
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => onApplyBlockStyle('> ')}
+                className={btnIconClass}
+                title="Quote"
+              >
+                <Quote className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* ===================== TAB: INSERT ===================== */}
         {activeTab === 'insert' && (
@@ -260,7 +627,7 @@ export const WordRibbon: React.FC<WordRibbonProps> = ({
                 title="Insert Table Grid"
               >
                 <TableIcon className="h-4 w-4 text-blue-600" />
-                <span>Table</span>
+                <span>{isAr ? 'جدول' : 'Table'}</span>
                 <ChevronDown className="h-3 w-3 opacity-60" />
               </button>
 
@@ -311,7 +678,7 @@ export const WordRibbon: React.FC<WordRibbonProps> = ({
               title="Word Native Math Equation (LaTeX)"
             >
               <Sigma className="h-4 w-4 text-purple-600" />
-              <span>Word Equation</span>
+              <span>{isAr ? 'معادلة رياضية' : 'Word Equation'}</span>
             </button>
 
             {/* Picture / Image */}
@@ -323,7 +690,7 @@ export const WordRibbon: React.FC<WordRibbonProps> = ({
               title="Insert Picture or Upload Image"
             >
               <ImageIcon className="h-4 w-4 text-emerald-600" />
-              <span>Picture</span>
+              <span>{isAr ? 'صورة' : 'Picture'}</span>
             </button>
 
             {/* Code Block */}
@@ -335,7 +702,7 @@ export const WordRibbon: React.FC<WordRibbonProps> = ({
               title="Insert Code Snippet"
             >
               <Code className="h-4 w-4 text-slate-600 dark:text-slate-400" />
-              <span>Code Block</span>
+              <span>{isAr ? 'كود برمجي' : 'Code Block'}</span>
             </button>
 
             {/* Link */}
@@ -347,7 +714,7 @@ export const WordRibbon: React.FC<WordRibbonProps> = ({
               title="Insert Hyperlink"
             >
               <LinkIcon className="h-4 w-4 text-blue-500" />
-              <span>Link</span>
+              <span>{isAr ? 'رابط' : 'Link'}</span>
             </button>
 
             {/* Symbols */}
@@ -359,7 +726,7 @@ export const WordRibbon: React.FC<WordRibbonProps> = ({
               title="Special Characters and Greek Symbols"
             >
               <span className="font-serif font-bold text-sm text-purple-600">Ω</span>
-              <span>Symbol</span>
+              <span>{isAr ? 'رموز خاصة' : 'Symbol'}</span>
             </button>
 
             {/* Page Break */}
@@ -371,7 +738,7 @@ export const WordRibbon: React.FC<WordRibbonProps> = ({
               title="Insert A4 Page Break"
             >
               <Split className="h-4 w-4 text-slate-500" />
-              <span>Page Break</span>
+              <span>{isAr ? 'فاصل صفحات' : 'Page Break'}</span>
             </button>
 
             {/* Table of Contents */}
@@ -383,7 +750,7 @@ export const WordRibbon: React.FC<WordRibbonProps> = ({
               title="Automatically scan headings and insert Table of Contents"
             >
               <ListTree className="h-4 w-4 text-indigo-600" />
-              <span>Table of Contents</span>
+              <span>{isAr ? 'جدول المحتويات' : 'Table of Contents'}</span>
             </button>
 
             <div className={dividerClass} />
@@ -417,7 +784,9 @@ export const WordRibbon: React.FC<WordRibbonProps> = ({
           <div className="flex items-center gap-3 text-xs flex-nowrap">
             {/* Orientation */}
             <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-950 p-1 rounded-lg border border-slate-200 dark:border-slate-800 shrink-0">
-              <span className="text-slate-500 font-medium px-1 text-[11px]">Orientation:</span>
+              <span className="text-slate-500 font-medium px-1 text-[11px]">
+                {isAr ? 'الاتجاه:' : 'Orientation:'}
+              </span>
               <button
                 type="button"
                 onClick={() => onChangeFormatting({ orientation: 'portrait' })}
@@ -427,7 +796,7 @@ export const WordRibbon: React.FC<WordRibbonProps> = ({
                     : 'hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
                 }`}
               >
-                Portrait
+                {isAr ? 'عمودي' : 'Portrait'}
               </button>
               <button
                 type="button"
@@ -438,7 +807,7 @@ export const WordRibbon: React.FC<WordRibbonProps> = ({
                     : 'hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
                 }`}
               >
-                Landscape
+                {isAr ? 'أفقي' : 'Landscape'}
               </button>
             </div>
 
@@ -446,7 +815,9 @@ export const WordRibbon: React.FC<WordRibbonProps> = ({
 
             {/* Margins */}
             <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-950 p-1 rounded-lg border border-slate-200 dark:border-slate-800 shrink-0">
-              <span className="text-slate-500 font-medium px-1 text-[11px]">Margins:</span>
+              <span className="text-slate-500 font-medium px-1 text-[11px]">
+                {isAr ? 'الهوامش:' : 'Margins:'}
+              </span>
               {(['normal', 'narrow', 'wide'] as const).map(m => (
                 <button
                   key={m}
@@ -476,7 +847,9 @@ export const WordRibbon: React.FC<WordRibbonProps> = ({
               }`}
             >
               <Stamp className="h-3.5 w-3.5 text-amber-600" />
-              <span>Watermark: {formatting.watermark || 'None'}</span>
+              <span>
+                {isAr ? 'علامة مائية:' : 'Watermark:'} {formatting.watermark || (isAr ? 'لا يوجد' : 'None')}
+              </span>
             </button>
 
             {/* Ruler Toggle */}
@@ -489,7 +862,9 @@ export const WordRibbon: React.FC<WordRibbonProps> = ({
                   : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-slate-400'
               }`}
             >
-              <span>Ruler: {formatting.showRuler ? 'ON' : 'OFF'}</span>
+              <span>
+                {isAr ? 'المسطرة:' : 'Ruler:'} {formatting.showRuler ? (isAr ? 'مفعلة' : 'ON') : (isAr ? 'معطلة' : 'OFF')}
+              </span>
             </button>
 
             {/* Direction Toggle */}
@@ -499,7 +874,7 @@ export const WordRibbon: React.FC<WordRibbonProps> = ({
               className="h-8 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:border-indigo-400 text-slate-700 dark:text-slate-300 font-semibold flex items-center gap-1.5 transition cursor-pointer shrink-0"
               title="Toggle Document Direction (LTR/RTL)"
             >
-              <span>{formatting.direction === 'rtl' ? 'RTL' : 'LTR'}</span>
+              <span>{formatting.direction === 'rtl' ? 'RTL (يمين لليسار)' : 'LTR (Left to Right)'}</span>
             </button>
           </div>
         )}
@@ -513,7 +888,7 @@ export const WordRibbon: React.FC<WordRibbonProps> = ({
               className="h-8 px-3 inline-flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:border-blue-400 hover:bg-blue-50/50 text-blue-700 dark:text-blue-300 font-semibold shadow-2xs transition cursor-pointer shrink-0"
             >
               <Type className="h-4 w-4 text-blue-600" />
-              <span>Word Count & Statistics</span>
+              <span>{isAr ? 'إحصائيات وعدد الكلمات' : 'Word Count & Statistics'}</span>
             </button>
 
             <button
@@ -522,7 +897,7 @@ export const WordRibbon: React.FC<WordRibbonProps> = ({
               className="h-8 px-3 inline-flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:border-blue-400 hover:bg-blue-50/50 text-blue-700 dark:text-blue-300 font-semibold shadow-2xs transition cursor-pointer shrink-0"
             >
               <Replace className="h-4 w-4 text-blue-600" />
-              <span>Find & Replace</span>
+              <span>{isAr ? 'البحث والاستبدال' : 'Find & Replace'}</span>
             </button>
 
             <div className={dividerClass} />
@@ -533,7 +908,7 @@ export const WordRibbon: React.FC<WordRibbonProps> = ({
               className="h-8 px-3 inline-flex items-center gap-1.5 rounded-lg bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-300 font-semibold border border-red-200 dark:border-red-900/60 hover:bg-red-100 transition cursor-pointer shrink-0"
             >
               <Sparkles className="h-3.5 w-3.5 text-red-600" />
-              <span>AI Polish / Rephrase</span>
+              <span>{isAr ? 'تحسين صياغة الذكاء الاصطناعي' : 'AI Polish / Rephrase'}</span>
             </button>
           </div>
         )}
@@ -568,7 +943,7 @@ export const WordRibbon: React.FC<WordRibbonProps> = ({
                 title="Print Layout (Realistic A4 Pages)"
               >
                 <Eye className="h-3.5 w-3.5" />
-                <span>Print Layout (A4)</span>
+                <span>{isAr ? 'تخطيط الطباعة (A4)' : 'Print Layout (A4)'}</span>
               </button>
 
               <button
@@ -582,7 +957,7 @@ export const WordRibbon: React.FC<WordRibbonProps> = ({
                 title="Continuous Web Canvas"
               >
                 <Layers className="h-3.5 w-3.5" />
-                <span>Continuous Web</span>
+                <span>{isAr ? 'تخطيط ويب مستمر' : 'Continuous Web'}</span>
               </button>
 
               <button
@@ -596,7 +971,7 @@ export const WordRibbon: React.FC<WordRibbonProps> = ({
                 title="Split View (Preview + Source)"
               >
                 <Split className="h-3.5 w-3.5" />
-                <span>Split View</span>
+                <span>{isAr ? 'عرض مزدوج' : 'Split View'}</span>
               </button>
 
               <button
@@ -610,7 +985,7 @@ export const WordRibbon: React.FC<WordRibbonProps> = ({
                 title="Raw Markdown Source"
               >
                 <FileCode2 className="h-3.5 w-3.5" />
-                <span>Source Code</span>
+                <span>{isAr ? 'شفرة المصدر' : 'Source Code'}</span>
               </button>
             </div>
 
@@ -663,7 +1038,7 @@ export const WordRibbon: React.FC<WordRibbonProps> = ({
               title="Import and convert Microsoft Word document (.docx) into editor"
             >
               <Upload className="h-4 w-4" />
-              <span>Import Word (.docx)</span>
+              <span>{isAr ? 'استيراد وورد (.docx)' : 'Import Word (.docx)'}</span>
             </button>
 
             {/* Export DOCX */}
@@ -675,7 +1050,7 @@ export const WordRibbon: React.FC<WordRibbonProps> = ({
               title="Download Microsoft Word document"
             >
               <FileDown className="h-4 w-4 text-blue-600" />
-              <span>Export Word (.docx)</span>
+              <span>{isAr ? 'تصدير Word (DOCX)' : 'Export Word (.docx)'}</span>
             </button>
 
             {/* Export PDF */}
@@ -685,7 +1060,7 @@ export const WordRibbon: React.FC<WordRibbonProps> = ({
               className="h-8 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold flex items-center gap-1.5 transition cursor-pointer shrink-0"
             >
               <Printer className="h-4 w-4 text-slate-600 dark:text-slate-400" />
-              <span>Export PDF / Print</span>
+              <span>{isAr ? 'تصدير PDF / طباعة' : 'Export PDF / Print'}</span>
             </button>
 
             {/* Copy Google Docs */}
@@ -695,7 +1070,7 @@ export const WordRibbon: React.FC<WordRibbonProps> = ({
               className="h-8 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold flex items-center gap-1.5 transition cursor-pointer shrink-0"
             >
               <Copy className="h-4 w-4 text-slate-600 dark:text-slate-400" />
-              <span>Copy for Google Docs</span>
+              <span>{isAr ? 'نسخ لـ Google Docs' : 'Copy for Google Docs'}</span>
             </button>
 
             {/* Save */}
@@ -705,40 +1080,32 @@ export const WordRibbon: React.FC<WordRibbonProps> = ({
               className="h-8 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 font-semibold flex items-center gap-1.5 transition cursor-pointer shrink-0"
             >
               <Save className="h-4 w-4 text-green-600" />
-              <span>Save Document</span>
+              <span>{isAr ? 'حفظ المستند' : 'Save Document'}</span>
             </button>
 
             <div className={dividerClass} />
 
             {/* Templates */}
             <div className="flex items-center gap-1.5 shrink-0">
-              <span className="text-slate-500 font-medium text-[11px]">Templates:</span>
+              <span className="text-slate-500 font-medium text-[11px]">{isAr ? 'القوالب:' : 'Templates:'}</span>
               <button
                 type="button"
                 onClick={() => onLoadTemplate('quantum')}
                 className="h-7 px-2.5 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-[11px] font-semibold cursor-pointer transition"
               >
-                Physics Paper
+                {isAr ? 'بحث الفيزياء' : 'Physics Paper'}
               </button>
               <button
                 type="button"
                 onClick={() => onLoadTemplate('saudi_vat')}
                 className="h-7 px-2.5 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-[11px] font-semibold cursor-pointer transition"
               >
-                Saudi VAT Report
-              </button>
-              <button
-                type="button"
-                onClick={() => onLoadTemplate('neural_network')}
-                className="h-7 px-2.5 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-[11px] font-semibold cursor-pointer transition"
-              >
-                Technical Spec
+                {isAr ? 'التقرير الضريبي' : 'Saudi VAT Report'}
               </button>
             </div>
           </div>
         )}
       </div>
-      )}
     </div>
   );
 };

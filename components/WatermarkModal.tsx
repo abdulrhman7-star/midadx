@@ -18,8 +18,8 @@ export const WatermarkModal: React.FC<WatermarkModalProps> = ({
   const { language } = useLanguage();
   const isAr = language === 'ar';
 
-  const [selectedWatermark, setSelectedWatermark] = useState(watermark);
-  const [customText, setCustomText] = useState(watermark);
+  const [selectedWatermark, setSelectedWatermark] = useState(watermark || '');
+  const [customText, setCustomText] = useState(watermark || '');
 
   if (!isOpen) return null;
 

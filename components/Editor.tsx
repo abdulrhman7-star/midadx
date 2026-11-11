@@ -481,18 +481,18 @@ export const Editor = forwardRef<EditorHandle, EditorProps>((props, ref) => {
     if (!isSyncingRef.current && !isTypingDirectlyRef.current && paperEditableRef.current) {
       const rendered = markdownToHtml(markdown, formatting.direction);
       if (paperEditableRef.current.innerHTML !== rendered) {
-        paperEditableRef.current.innerHTML = rendered;
+        paperEditableRef.current.innerHTML = rendered || '';
       }
     }
     isSyncingRef.current = false;
-  }, [markdown, formatting.direction]);
+  }, [markdown, formatting.direction, viewMode]);
 
   // Sync paper DOM back into markdown
   const syncPaperToMarkdown = useCallback(() => {
     if (paperEditableRef.current) {
       const html = paperEditableRef.current.innerHTML;
       const md = htmlToMarkdown(html);
-      if (md && md.trim() !== markdown.trim()) {
+      if (md !== undefined && md.trim() !== markdown.trim()) {
         isSyncingRef.current = true;
         updateMarkdownWithHistory(md);
       }
@@ -504,10 +504,11 @@ export const Editor = forwardRef<EditorHandle, EditorProps>((props, ref) => {
     saveSelection();
     const html = e.currentTarget.innerHTML;
     const md = htmlToMarkdown(html);
-    if (md) {
-      onChangeMarkdown(md);
-      scheduleAutosave();
-    }
+    onChangeMarkdown(md || '');
+    scheduleAutosave();
+    setTimeout(() => {
+      isTypingDirectlyRef.current = false;
+    }, 150);
   };
 
   const handlePaperBlur = (e: React.FocusEvent<HTMLDivElement>) => {
@@ -522,6 +523,7 @@ export const Editor = forwardRef<EditorHandle, EditorProps>((props, ref) => {
     mdBefore?: string,
     mdAfter?: string
   ) => {
+    // 1. Textarea selection (Source or Split view)
     const activeTextarea =
       viewMode === 'source'
         ? textareaRef.current
@@ -553,50 +555,98 @@ export const Editor = forwardRef<EditorHandle, EditorProps>((props, ref) => {
           : command === 'underline'
           ? '</u>'
           : before;
-      const replacement = `${before}${selected || 'Formatted Text'}${after}`;
+
+      const replacement = selected
+        ? `${before}${selected}${after}`
+        : `${before}${after}`;
+
       const updated = markdown.substring(0, start) + replacement + markdown.substring(end);
       updateMarkdownWithHistory(updated);
       setTimeout(() => {
         activeTextarea.focus();
-        activeTextarea.setSelectionRange(start + before.length, end + before.length);
+        if (selected) {
+          activeTextarea.setSelectionRange(start, start + replacement.length);
+        } else {
+          activeTextarea.setSelectionRange(start + before.length, start + before.length);
+        }
       }, 50);
       return;
     }
 
+    // 2. Interactive Paper Canvas (contentEditable)
     if (paperEditableRef.current) {
       paperEditableRef.current.focus();
-    }
-    restoreSelection();
+      restoreSelection();
 
-    if (command && typeof document !== 'undefined') {
-      try {
-        const handledInPaper = document.execCommand(command, false, value);
-        if (handledInPaper && paperEditableRef.current) {
+      const sel = typeof window !== 'undefined' ? window.getSelection() : null;
+
+      // Helper to find parent block element inside paper canvas
+      const getClosestBlock = (node: Node | null): HTMLElement | null => {
+        let curr = node;
+        while (curr && curr !== paperEditableRef.current) {
+          if (curr.nodeType === Node.ELEMENT_NODE) {
+            const tag = (curr as HTMLElement).tagName.toLowerCase();
+            if (['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li', 'blockquote', 'div', 'td', 'th'].includes(tag)) {
+              return curr as HTMLElement;
+            }
+          }
+          curr = curr.parentNode;
+        }
+        return null;
+      };
+
+      // Alignment commands (justifyRight, justifyCenter, justifyLeft, justifyFull): apply ONLY to selected paragraph/block
+      if (['justifyRight', 'justifyLeft', 'justifyCenter', 'justifyFull'].includes(command)) {
+        if (sel && sel.anchorNode) {
+          const block = getClosestBlock(sel.anchorNode);
+          if (block) {
+            const alignValue =
+              command === 'justifyRight'
+                ? 'right'
+                : command === 'justifyCenter'
+                ? 'center'
+                : command === 'justifyLeft'
+                ? 'left'
+                : 'justify';
+            block.style.textAlign = alignValue;
+            syncPaperToMarkdown();
+            saveSelection();
+            return;
+          }
+        }
+      }
+
+      // Native ContentEditable ExecCommand for selected text
+      if (command && typeof document !== 'undefined') {
+        try {
+          const ok = document.execCommand(command, false, value);
+          if (ok) {
+            syncPaperToMarkdown();
+            saveSelection();
+            return;
+          }
+        } catch (e) {
+          console.warn('execCommand warning:', e);
+        }
+      }
+
+      // Range wrapping for custom wrappers when a text selection exists
+      if (sel && sel.rangeCount > 0) {
+        const range = sel.getRangeAt(0);
+        if (!range.collapsed) {
+          const before = mdBefore || '';
+          const after = mdAfter || before;
+          const selectedText = range.toString();
+          const span = document.createElement('span');
+          span.innerHTML = `${before}${selectedText}${after}`;
+          range.deleteContents();
+          range.insertNode(span);
           syncPaperToMarkdown();
           saveSelection();
           return;
         }
-      } catch {}
+      }
     }
-
-    const before =
-      mdBefore !== undefined
-        ? mdBefore
-        : command === 'bold'
-        ? '**'
-        : command === 'italic'
-        ? '*'
-        : command === 'underline'
-        ? '<u>'
-        : '';
-    const after =
-      mdAfter !== undefined
-        ? mdAfter
-        : command === 'underline'
-        ? '</u>'
-        : before;
-
-    updateMarkdownWithHistory(`${markdown}\n\n${before}Formatted Text${after}`);
   }, [
     markdown,
     restoreSelection,
@@ -1020,92 +1070,63 @@ export const Editor = forwardRef<EditorHandle, EditorProps>((props, ref) => {
           {/* ===================== VIEW: PRINT LAYOUT (PAGINATED A4) ===================== */}
           {viewMode === 'print' && (
             <div className="flex flex-col items-center gap-6 w-full max-w-[1100px]">
-              {markdown.trim() ? (
-                <div
-                  className={`relative paper-canvas print-area w-full ${paperOrientationWidth} ${paperMarginClasses} rounded-sm bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 shadow-xl transition-all`}
-                  style={fontFamilyStyle}
-                >
-                  {/* Page Header (Word Header) */}
-                  <div className="pb-3 mb-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-400 select-none">
-                    <span className="truncate max-w-[300px] font-semibold">{documentTitle}</span>
-                    <span>
-                      {formatting.paperSize.toUpperCase()} •{' '}
-                      {formatting.orientation === 'landscape' ? 'Landscape' : 'Portrait'}
+              <div
+                onClick={() => paperEditableRef.current?.focus()}
+                className={`relative paper-canvas print-area w-full ${paperOrientationWidth} ${paperMarginClasses} rounded-sm bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 shadow-xl transition-all cursor-text`}
+                style={fontFamilyStyle}
+              >
+                {/* Page Header (Word Header) */}
+                <div className="pb-3 mb-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-400 select-none">
+                  <span className="truncate max-w-[300px] font-semibold">{documentTitle}</span>
+                  <span>
+                    {formatting.paperSize.toUpperCase()} •{' '}
+                    {formatting.orientation === 'landscape' ? 'Landscape' : 'Portrait'}
+                  </span>
+                </div>
+
+                {/* Watermark Display */}
+                {formatting.watermark && (
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none overflow-hidden z-0">
+                    <span className="text-6xl sm:text-7xl font-black text-slate-200/50 dark:text-slate-800/40 uppercase tracking-widest rotate-[-35deg]">
+                      {formatting.watermark}
                     </span>
                   </div>
+                )}
 
-                  {/* Watermark Display */}
-                  {formatting.watermark && (
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none overflow-hidden z-0">
-                      <span className="text-6xl sm:text-7xl font-black text-slate-200/50 dark:text-slate-800/40 uppercase tracking-widest rotate-[-35deg]">
-                        {formatting.watermark}
-                      </span>
+                {/* Quick Empty State Helper Banner */}
+                {!markdown.trim() && (
+                  <div className="mb-4 p-3 rounded-xl bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200/60 dark:border-indigo-900/60 flex flex-wrap items-center justify-between gap-2 text-xs select-none">
+                    <span className="font-semibold text-indigo-700 dark:text-indigo-300">
+                      {direction === 'rtl'
+                        ? 'المستند فارغ — اضغط هنا للكتابة مباشرة أو استخدم Ctrl+K لإدراج نص بالذكاء الاصطناعي'
+                        : 'Empty document — click here to type directly or press Ctrl+K to insert AI Markdown'}
+                    </span>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={e => {
+                          e.stopPropagation();
+                          onOpenInsertModal();
+                        }}
+                        className="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[11px] cursor-pointer"
+                      >
+                        {t.insertButton} (Ctrl+K)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={e => {
+                          e.stopPropagation();
+                          handleLoadTemplate('quantum');
+                        }}
+                        className="px-2.5 py-1 rounded-lg border border-indigo-300 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300 font-semibold text-[11px] cursor-pointer hover:bg-indigo-100 dark:hover:bg-indigo-900"
+                      >
+                        {direction === 'rtl' ? 'تحميل قالب تجريبي' : 'Load Sample Template'}
+                      </button>
                     </div>
-                  )}
-
-                  {/* Unified Interactive & Editable Paper Content */}
-                  <div
-                    ref={paperEditableRef}
-                    contentEditable={true}
-                    suppressContentEditableWarning={true}
-                    onInput={handlePaperInput}
-                    onBlur={handlePaperBlur}
-                    onMouseUp={saveSelection}
-                    onKeyUp={saveSelection}
-                    dangerouslySetInnerHTML={{ __html: markdownToHtml(markdown, formatting.direction) }}
-                    className="relative z-10 prose dark:prose-invert max-w-none text-slate-900 dark:text-slate-100 focus:outline-none min-h-[350px] sm:min-h-[600px] lg:min-h-[750px]"
-                  />
-
-                  {/* Page Footer (Word Footer) */}
-                  <div className="pt-4 mt-12 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-400 select-none">
-                    <span>Midadd Word Document</span>
-                    <span className="font-semibold">
-                      Page 1 of {estimatedPages}
-                    </span>
                   </div>
-                </div>
-              ) : (
-                /* Empty state prompt */
-                <div
-                  onClick={onOpenInsertModal}
-                  className="paper-canvas w-full max-w-[850px] min-h-[500px] flex flex-col items-center justify-center border-2 border-dashed border-slate-300 dark:border-slate-800 rounded-xl cursor-pointer hover:border-indigo-400 group transition p-8 text-center bg-white dark:bg-slate-900 shadow-lg"
-                >
-                  <div className="h-16 w-16 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform shadow-sm">
-                    <FileText className="h-8 w-8" />
-                  </div>
-                  <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-1">
-                    Empty Document
-                  </h3>
-                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-md mb-4">
-                    Paste AI Markdown (Ctrl+K), type directly, or drop any .docx file here to import.
-                  </p>
-                  <div className="flex gap-2">
-                    <span className="px-4 py-2 rounded-xl bg-red-600 group-hover:bg-red-700 text-white font-bold text-xs sm:text-sm shadow-md shadow-red-600/20">
-                      {t.insertButton} (Ctrl+K)
-                    </span>
-                    <button
-                      type="button"
-                      onClick={e => {
-                        e.stopPropagation();
-                        handleLoadTemplate('quantum');
-                      }}
-                      className="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs sm:text-sm font-semibold cursor-pointer"
-                    >
-                      Load Sample Template
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+                )}
 
-          {/* ===================== VIEW: WEB LAYOUT (CONTINUOUS) ===================== */}
-          {viewMode === 'web' && (
-            <div
-              className={`paper-canvas print-area w-full ${paperOrientationWidth} ${paperMarginClasses} rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 shadow-xl transition-all`}
-              style={fontFamilyStyle}
-            >
-              {markdown.trim() ? (
+                {/* Unified Interactive & Editable Paper Content */}
                 <div
                   ref={paperEditableRef}
                   contentEditable={true}
@@ -1114,14 +1135,37 @@ export const Editor = forwardRef<EditorHandle, EditorProps>((props, ref) => {
                   onBlur={handlePaperBlur}
                   onMouseUp={saveSelection}
                   onKeyUp={saveSelection}
-                  dangerouslySetInnerHTML={{ __html: markdownToHtml(markdown, formatting.direction) }}
-                  className="prose dark:prose-invert max-w-none text-slate-900 dark:text-slate-100 focus:outline-none min-h-[350px] sm:min-h-[600px]"
+                  className="relative z-10 prose dark:prose-invert max-w-none text-slate-900 dark:text-slate-100 focus:outline-none min-h-[350px] sm:min-h-[600px] lg:min-h-[750px]"
                 />
-              ) : (
-                <div className="text-center py-24 text-slate-400">
-                  <p>Document is empty. Click to type or use Ribbon tools above to start writing.</p>
+
+                {/* Page Footer (Word Footer) */}
+                <div className="pt-4 mt-12 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-400 select-none">
+                  <span>Midadd Word Document</span>
+                  <span className="font-semibold">
+                    Page 1 of {estimatedPages}
+                  </span>
                 </div>
-              )}
+              </div>
+            </div>
+          )}
+
+          {/* ===================== VIEW: WEB LAYOUT (CONTINUOUS) ===================== */}
+          {viewMode === 'web' && (
+            <div
+              onClick={() => paperEditableRef.current?.focus()}
+              className={`paper-canvas print-area w-full ${paperOrientationWidth} ${paperMarginClasses} rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 shadow-xl transition-all cursor-text`}
+              style={fontFamilyStyle}
+            >
+              <div
+                ref={paperEditableRef}
+                contentEditable={true}
+                suppressContentEditableWarning={true}
+                onInput={handlePaperInput}
+                onBlur={handlePaperBlur}
+                onMouseUp={saveSelection}
+                onKeyUp={saveSelection}
+                className="prose dark:prose-invert max-w-none text-slate-900 dark:text-slate-100 focus:outline-none min-h-[350px] sm:min-h-[600px]"
+              />
             </div>
           )}
 
@@ -1130,7 +1174,8 @@ export const Editor = forwardRef<EditorHandle, EditorProps>((props, ref) => {
             <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-4">
               {/* Left: Interactive Paper */}
               <div
-                className="paper-canvas p-6 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 shadow-md overflow-y-auto max-h-[750px]"
+                onClick={() => paperEditableRef.current?.focus()}
+                className="paper-canvas p-6 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 shadow-md overflow-y-auto max-h-[750px] cursor-text"
                 style={fontFamilyStyle}
               >
                 <div
@@ -1141,8 +1186,7 @@ export const Editor = forwardRef<EditorHandle, EditorProps>((props, ref) => {
                   onBlur={handlePaperBlur}
                   onMouseUp={saveSelection}
                   onKeyUp={saveSelection}
-                  dangerouslySetInnerHTML={{ __html: markdownToHtml(markdown) }}
-                  className="prose dark:prose-invert max-w-none text-xs sm:text-sm text-slate-900 dark:text-slate-100 focus:outline-none"
+                  className="prose dark:prose-invert max-w-none text-xs sm:text-sm text-slate-900 dark:text-slate-100 focus:outline-none min-h-[300px]"
                 />
               </div>
 

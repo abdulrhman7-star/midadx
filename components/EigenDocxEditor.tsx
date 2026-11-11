@@ -10,6 +10,7 @@ import React, {
 } from 'react';
 import dynamic from 'next/dynamic';
 import '@docx-editor.dev/core/styles/editor.css';
+import { packagedFonts } from '@docx-editor.dev/fonts';
 import { Loader2 } from 'lucide-react';
 import { WordFormattingOptions } from './WordRibbon';
 
@@ -188,6 +189,10 @@ export const EigenDocxEditor = forwardRef<EigenDocxEditorHandle, EigenDocxEditor
         <DynamicDocxEditor
           ref={editorComponentRef}
           document={currentSource}
+          mode="edit"
+          title={documentTitle}
+          locale={formatting.direction === 'rtl' ? 'ar-SA' : 'en-US'}
+          fonts={packagedFonts()}
           colorMode={isDark ? 'dark' : 'light'}
           chrome={true}
           onReady={handleEditorReady}

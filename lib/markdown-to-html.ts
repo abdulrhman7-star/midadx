@@ -253,6 +253,13 @@ export function markdownToHtml(markdown: string, direction: 'rtl' | 'ltr' = 'ltr
       continue;
     }
 
+    // 8.5 Existing HTML block or aligned paragraph: <p style="...">, <div style="...">, <img ...>
+    if (/^<(p|div|img|figure|table|blockquote|h1|h2|h3|h4|h5|h6)\b/i.test(trimmed)) {
+      flushList();
+      htmlParts.push(parseInlineMarkdown(line));
+      continue;
+    }
+
     // Standard Paragraph
     flushList();
     htmlParts.push(`<p class="my-3 leading-relaxed text-slate-700 dark:text-slate-300 ${direction === 'rtl' ? 'text-right' : 'text-left'}" dir="${direction}">${parseInlineMarkdown(line)}</p>`);
@@ -266,12 +273,18 @@ export function markdownToHtml(markdown: string, direction: 'rtl' | 'ltr' = 'ltr
 }
 
 /**
- * Parses inline markdown: inline math ($...$), bold, italic, code, links, strikethrough
+ * Parses inline markdown: images, inline math ($...$), bold, italic, code, links, strikethrough
  */
 export function parseInlineMarkdown(text: string): string {
   if (!text) return '';
 
   let out = text;
+
+  // 0. Image markdown: ![alt](src)
+  out = out.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, src) => {
+    const cleanAlt = escapeHtml(alt || 'Image');
+    return `<img src="${src}" alt="${cleanAlt}" class="max-w-full h-auto rounded-lg border border-slate-200 dark:border-slate-800 shadow-md my-3 inline-block align-middle" />`;
+  });
 
   // 1. Inline LaTeX math: $...$ or \(...\)
   out = out.replace(/\$([^\$\n]+)\$/g, (match, formula) => {
@@ -331,4 +344,140 @@ export interface MarkdownPreset {
   markdown: string;
 }
 
-export const SAMPLE_MARKDOWN_PRESETS: MarkdownPreset[] = [];
+export const SAMPLE_MARKDOWN_PRESETS: MarkdownPreset[] = [
+  {
+    id: 'quantum',
+    titleEn: 'Quantum Entanglement & Superposition Report',
+    titleAr: 'ورقة بحثية: التشابك والتراكب الكمي',
+    markdown: `# ورقة بحثية: دراسة التراكب والتشابك الكمي
+
+> **ملخص البحث:** يهدف هذا المستند إلى تحليل ظاهرة التشابك الكمي (Quantum Entanglement) وحساب متجهات الحالات الحسابية بأسلوب أكاديمي احترافي.
+
+---
+
+## 1. المقدمة والخلفية النظرية
+
+تُعد الميكانيكا الكمية إحدى أهم الثورات العلمية في الفيزياء الحديثة. تعتمد صيغة حالة الكيوبت (Qubit) العامة على حالة التراكب:
+
+$$\\psi = \\alpha |0\\rangle + \\beta |1\\rangle$$
+
+حيث تحقق الأعداد المركبة $\\alpha$ و $\\beta$ الشروط التالية:
+
+$$|\\alpha|^2 + |\\beta|^2 = 1$$
+
+---
+
+## 2. مصفوفة الكثافة وحالة بيل (Bell State)
+
+تتميز حالات بيل المشابكة بصيغتها الرياضية المعيارية:
+
+$$|\\Phi^+\\rangle = \\frac{1}{\\sqrt{2}} \\left( |00\\rangle + |11\\rangle \\right)$$
+
+### جدول المقارنة للحالات الكمية:
+
+| نوع الحالة | الصيغة الرياضية | درجة التشابك | التطبيق العملي |
+| :--- | :---: | :---: | ---: |
+| Qubit Single | $\\alpha|0\\rangle + \\beta|1\\rangle$ | $0.0$ | التخزين الحسابي |
+| Bell State | $\\frac{1}{\\sqrt{2}}(|00\\rangle + |11\\rangle)$ | $1.0$ | التشفير الكمي |
+| GHZ State | $\\frac{1}{\\sqrt{2}}(|000\\rangle + |111\\rangle)$ | $1.0$ | الاتصالات الجماعية |
+
+---
+
+## 3. خوارزمية المحاكاة البرمجية (Python)
+
+\`\`\`python
+import numpy as np
+
+def generate_bell_state():
+    # Bell state creation matrix
+    qubit_00 = np.array([1, 0, 0, 0])
+    qubit_11 = np.array([0, 0, 0, 1])
+    bell_phi_plus = (qubit_00 + qubit_11) / np.sqrt(2)
+    return bell_phi_plus
+
+print("Bell State Vector:", generate_bell_state())
+\`\`\`
+
+- [x] إعداد صيغة المعادلات الرياضيات OMML
+- [x] التحقق من الجداول وتنسيق العناوين
+- [ ] المراجعة النهائية والتصدير لملف Word
+`,
+  },
+  {
+    id: 'saudi_vat',
+    titleEn: 'Saudi VAT & Financial Compliance Report',
+    titleAr: 'تقرير الإقرار الضريبي للضريبة المضافة (ZATCA)',
+    markdown: `# تقرير الإقرار الضريبي وضريبة القيمة المضافة (ZATCA)
+
+**اسم الشركة:** شركة مداد التقنية للحلول الرقمية  
+**الرقم الضريبي (VAT ID):** \`310123456700003\`  
+**الفصل الضريبي:** الربع الأول 2026  
+
+---
+
+## 1. ملخص الإقرارات والمبيعات
+
+يوضح الجدول التالي تفاصيل المبيعات الخاضعة للنسبة الأساسية (15%) والمبيعات المعفاة والصافية:
+
+| بند الإقرار | المبلغ الخاضع (SAR) | ضريبة القيمة المضافة 15% | الصافي الاجمالي |
+| :--- | :---: | :---: | ---: |
+| المبيعات الخاضعة للنسبة الأساسية (15%) | 120,000.00 | 18,000.00 | 138,000.00 |
+| المشتريات الخاضعة للنسبة الأساسية (15%) | 40,000.00 | 6,000.00 | 46,000.00 |
+| **صافي الضريبة المستحقة للدفع** | **80,000.00** | **12,000.00** | **92,000.00** |
+
+---
+
+## 2. المعادلة الحسابية للضريبة الصافية
+
+$$\\text{Net VAT Payable} = \\sum \\text{Output VAT} - \\sum \\text{Input VAT}$$
+
+$$\\text{Net VAT} = 18,000.00 - 6,000.00 = 12,000.00 \\text{ SAR}$$
+
+> [!NOTE]
+> يجب سداد الإقرار الضريبي قبل نهاية الشهر التالي للفصل الضريبي لضمان الامتثال لتعليمات هيئة الزكاة والضريبة والجمارك.
+`,
+  },
+  {
+    id: 'neural_network',
+    titleEn: 'Neural Network Architecture & AI Specification',
+    titleAr: 'مواصفات شبكة التعلم العميق والذكاء الاصطناعي',
+    markdown: `# مواصفات شبكة التعلم العميق Transformer Model Architecture
+
+## 1. بنية النموذج والمكونات
+
+تعتمد البنية على آلية الانتباه الذاتي المترابط (Multi-Head Self-Attention):
+
+$$\\text{Attention}(Q, K, V) = \\text{softmax}\\left(\\frac{QK^T}{\\sqrt{d_k}}\\right)V$$
+
+---
+
+## 2. معلمات الطبقات والتأخير
+
+| الطبقة (Layer) | الأبعاد (Dimensions) | زمن المعالجة (ms) |
+| :--- | :---: | ---: |
+| Embedding Layer | $512 \\times 768$ | 1.2 ms |
+| Multi-Head Attention | $8 \\text{ heads}, d_k=64$ | 4.5 ms |
+| Feed Forward Layer | $2048 \\text{ hidden units}$ | 3.1 ms |
+
+---
+
+## 3. كود تنفيذ دالة الخسارة (Loss Function)
+
+\`\`\`python
+import torch
+import torch.nn as nn
+
+class CrossEntropyLossWithSmoothing(nn.Module):
+    def __init__(self, label_smoothing=0.1):
+        super().__init__()
+        self.confidence = 1.0 - label_smoothing
+
+    def forward(self, x, target):
+        logprobs = torch.log_softmax(x, dim=-1)
+        nll_loss = -logprobs.gather(dim=-1, index=target.unsqueeze(-1)).squeeze(-1)
+        return nll_loss.mean()
+\`\`\`
+`,
+  },
+];
+
