@@ -5,10 +5,11 @@ export const dynamic = 'force-dynamic';
 import React, { useState, useEffect, useRef } from 'react';
 import confetti from 'canvas-confetti';
 import nextDynamic from 'next/dynamic';
-import { LanguageProvider, useLanguage } from '@/components/LanguageContext';
+import { useLanguage } from '@/components/LanguageContext';
 import { Header } from '@/components/Header';
 import { ExportBar } from '@/components/ExportBar';
 import { Footer } from '@/components/Footer';
+import { HomeEditorialSection } from '@/components/HomeEditorialSection';
 import { InsertContentModal } from '@/components/InsertContentModal';
 import { AuthModal } from '@/components/AuthModals';
 import { SavedDocumentsDrawer } from '@/components/SavedDocumentsDrawer';
@@ -443,6 +444,7 @@ function PlaygroundApp() {
           currentDocId={currentDocId}
           docxBase64={docxBase64}
         />
+        <HomeEditorialSection />
       </main>
 
       {/* Insert AI Content Modal (Ctrl+K) */}
@@ -480,9 +482,5 @@ function PlaygroundApp() {
 }
 
 export default function Home() {
-  return (
-    <LanguageProvider>
-      <PlaygroundApp />
-    </LanguageProvider>
-  );
+  return <PlaygroundApp />;
 }

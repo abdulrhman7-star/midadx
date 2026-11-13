@@ -11,6 +11,7 @@ import {
 } from 'firebase/auth';
 import {
   getFirestore,
+  initializeFirestore,
   doc,
   collection,
   getDoc,
@@ -29,8 +30,23 @@ import { getSavedDocuments, saveDocument as saveLocalDocument, deleteDocument as
 // Initialize Firebase App
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
+function createFirestoreClient(): Firestore {
+  if (typeof window === 'undefined') {
+    return getFirestore(app, firebaseConfig.firestoreDatabaseId);
+  }
+  try {
+    return initializeFirestore(
+      app,
+      { experimentalForceLongPolling: true },
+      firebaseConfig.firestoreDatabaseId
+    );
+  } catch {
+    return getFirestore(app, firebaseConfig.firestoreDatabaseId);
+  }
+}
+
 // CRITICAL: Must pass firestoreDatabaseId from firebase-applet-config.json
-export const db: Firestore = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+export const db: Firestore = createFirestoreClient();
 export const auth = getAuth(app);
 export const googleAuthProvider = new GoogleAuthProvider();
 
@@ -83,21 +99,36 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
   throw new Error(JSON.stringify(errInfo));
 }
 
+const globalForFirebase = globalThis as typeof globalThis & {
+  __midaddFirestoreTested?: boolean;
+};
+
 /**
  * Validate Connection to Firestore on startup
  */
 export async function testConnection(): Promise<void> {
   if (typeof window === 'undefined') return;
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
+
   try {
     await getDocFromServer(doc(db, 'test', 'connection'));
   } catch (error) {
     if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.error('Please check your Firebase configuration.');
+      // Retry once after a short delay in case the network/proxy was still warming up
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      try {
+        await getDocFromServer(doc(db, 'test', 'connection'));
+      } catch (retryError) {
+        if (retryError instanceof Error && retryError.message.includes('the client is offline')) {
+          console.error('Please check your Firebase configuration.');
+        }
+      }
     }
   }
 }
 
-if (typeof window !== 'undefined') {
+if (typeof window !== 'undefined' && !globalForFirebase.__midaddFirestoreTested) {
+  globalForFirebase.__midaddFirestoreTested = true;
   testConnection();
 }
 

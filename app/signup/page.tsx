@@ -170,8 +170,6 @@ export default function SignupPage() {
       <Header
         session={session}
         savedDocsCount={savedDocs.length}
-        onOpenSavedDocs={() => {}}
-        onOpenAuthModal={() => {}}
         onLogout={logoutAccount}
         isDark={isDark}
         onToggleTheme={toggleTheme}

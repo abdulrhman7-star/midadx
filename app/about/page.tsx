@@ -4,20 +4,18 @@ import React from 'react';
 import Link from 'next/link';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
+import { AdSlot } from '@/components/AdSlot';
 import { useLanguage } from '@/components/LanguageContext';
 import { useSession, useSavedDocsList, logoutAccount } from '@/lib/guest-session';
 import { useTheme } from '@/lib/theme';
 import {
-  Sparkles,
   ShieldCheck,
   FileText,
   Cpu,
   Globe2,
-  Users,
-  CheckCircle2,
-  ArrowLeft,
   Mail,
   Lock,
+  BookOpen,
 } from 'lucide-react';
 
 export default function AboutPage() {
@@ -32,8 +30,6 @@ export default function AboutPage() {
       <Header
         session={session}
         savedDocsCount={savedDocs.length}
-        onOpenSavedDocs={() => {}}
-        onOpenAuthModal={() => {}}
         onLogout={logoutAccount}
         isDark={isDark}
         onToggleTheme={toggleTheme}
@@ -41,120 +37,132 @@ export default function AboutPage() {
 
       <main className="flex-1 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 w-full space-y-10">
         {/* Page Header */}
-        <div className="text-center max-w-3xl mx-auto">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 text-xs font-bold mb-4">
-            <Sparkles className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
-            <span>{isAr ? 'عن المنصة والرؤية' : 'About midadd & Mission'}</span>
+        <header className="text-center max-w-3xl mx-auto space-y-4">
+          <div className="text-xs font-bold text-indigo-600 dark:text-indigo-400">
+            {isAr ? 'عن منصة مداد · الرسالة والرؤية' : 'About midadd · Mission & Standards'}
           </div>
 
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white mb-4">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white text-balance">
             {isAr
-              ? 'عن منصة مداد — تحويل نصوص الذكاء الاصطناعي إلى مستندات وورد وPDF احترافية'
+              ? 'منصة مداد — تحويل نصوص الذكاء الاصطناعي إلى مستندات Word وPDF احترافية'
               : 'About midadd — Professional AI Markdown to Word & PDF Platform'}
           </h1>
 
           <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 leading-relaxed">
             {isAr
-              ? 'منصة مداد هي أداة متخصصة للمصممين، الباحثين، الأكاديميين والطلاب، تمكنهم من تحويل المخرجات النصية لنماذج الذكاء الاصطناعي (ChatGPT, Claude, Gemini) إلى مستندات Microsoft Word (.docx) وPDF منسقة بدقة فائقة مع الحفاظ على المعادلات الرياضية والرموز العربية والجداول.'
-              : 'midadd is an advanced document engine built for researchers, academics, students, and professionals to convert raw AI Markdown outputs from ChatGPT, Claude, and Gemini into fully formatted Microsoft Word (.docx) and PDF documents.'}
+              ? 'منصة مداد هي بيئة متخصصة للباحثين، الأكاديميين، الطلاب، وصناع المحتوى لتحويل المخرجات النصية لنماذج الذكاء الاصطناعي (ChatGPT وClaude وGemini) إلى مستندات Microsoft Word (.docx) وPDF منسقة بدقة فائقة مع الحفاظ على المعادلات الرياضية والجداول واتجاه اللغة العربية.'
+              : 'midadd is a specialized workspace built for researchers, academics, students, and professionals to convert raw AI Markdown outputs from ChatGPT, Claude, and Gemini into formatted Microsoft Word (.docx) and PDF documents.'}
           </p>
-        </div>
+        </header>
 
-        {/* Feature Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-3">
-            <div className="h-10 w-10 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold">
+        {/* Core Pillars */}
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 space-y-3">
+            <div className="h-10 w-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
               <Globe2 className="h-5 w-5" />
             </div>
             <h2 className="font-extrabold text-base text-slate-900 dark:text-white">
-              {isAr ? 'دعم كامل للغة العربية (RTL)' : 'Native Arabic & RTL First'}
+              {isAr ? 'دعم أصيل للغة العربية (RTL)' : 'Native Arabic & RTL First'}
             </h2>
-            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
               {isAr
-                ? 'تم تطوير مداد خصيصاً لحل مشاكل اتجاه النص العربي وحذافة القوائم والتعداد الرقمي في ملفات Microsoft Word المترجمة من الإنجليزية.'
-                : 'Engineered explicitly to solve right-to-left text alignment, numbered lists, and typography formatting in Arabic academic papers.'}
+                ? 'صُممت مداد لحل مشكلات اتجاه النص العربي ثنائي الاتجاه (Bidi)، ومحاذاة القوائم المرقمة، وترتيب أعمدة الجداول في ملفات Word المنسوخة من محادثات الذكاء الاصطناعي.'
+                : 'Engineered explicitly to solve bidirectional Arabic text alignment, numbered lists, and table column ordering in Word documents.'}
             </p>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-3">
-            <div className="h-10 w-10 rounded-2xl bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 space-y-3">
+            <div className="h-10 w-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
               <Cpu className="h-5 w-5" />
             </div>
             <h2 className="font-extrabold text-base text-slate-900 dark:text-white">
-              {isAr ? 'تحويل معادلات LaTeX تلقائياً' : 'LaTeX to Native OMML Math'}
+              {isAr ? 'تحويل معادلات LaTeX إلى OMML' : 'LaTeX to Native OMML Math'}
             </h2>
-            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
               {isAr
-                ? 'يحول النظام معادلات LaTeX والرموز الرياضية المعقدة إلى معادلات Word الأصلية (OMML) القابلة للتعديل دون تحويلها لصور مشوهة.'
-                : 'Automatically renders inline and display LaTeX equations directly into editable native Word OMML math elements.'}
+                ? 'يحول المحرك معادلات LaTeX والرموز الهندسية والكسور إلى معادلات Word الأصلية (OMML) القابلة للتعديل المباشر بدلاً من إدراجها كصور جامدة.'
+                : 'Automatically converts inline and display LaTeX equations into editable native Word OMML equation elements.'}
             </p>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-3">
-            <div className="h-10 w-10 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 space-y-3">
+            <div className="h-10 w-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
               <Lock className="h-5 w-5" />
             </div>
             <h2 className="font-extrabold text-base text-slate-900 dark:text-white">
-              {isAr ? 'خصوصية تامة وشفرة طرفية' : '100% Client-Side Privacy'}
+              {isAr ? 'خصوصية تامة ومعالجة محلية' : '100% Client-Side Privacy'}
             </h2>
-            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
               {isAr
-                ? 'تتم معالجة وتنسيق وتوليد ملفات Word وPDF بالكامل داخل متصفح جهازك دون تخزين نصوصك أو أبحاثك على خوادم خارجية.'
-                : 'Document rendering and file generation happen entirely within your local browser runtime to guarantee data privacy.'}
+                ? 'تعمل خوارزميات التنسيق وتوليد الملفات داخل متصفح جهازك لحماية خصوصية مسوداتك وأبحاثك الأكاديمية وتقاريرك الإدارية.'
+                : 'Document parsing and file export run directly inside your browser runtime to protect confidential drafts and academic manuscripts.'}
             </p>
           </div>
-        </div>
+        </section>
 
-        {/* Detailed Description Content */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-10 shadow-sm space-y-8">
-          <section className="space-y-3">
+        {/* Detailed Narrative */}
+        <section className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-10 shadow-sm space-y-8">
+          <div className="space-y-3">
             <h2 className="text-xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
               <FileText className="h-5 w-5 text-indigo-600" />
-              <span>{isAr ? 'رؤية المنصة والهدف' : 'Platform Vision & Objectives'}</span>
+              <span>{isAr ? 'لماذا أنشأنا منصة مداد؟' : 'Why We Built midadd'}</span>
             </h2>
-            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+            <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
               {isAr
-                ? 'تأسست منصة مداد لتوفير تجربة تحرير وتصدير مستندات سلسة وعالية الجودة. يواجه العديد من المستخدمين صعوبة عند نسخ النصوص المنشأة بواسطة نماذج الذكاء الاصطناعي ولصقها في برامج التحرير التقليدية مثل Word أو Google Docs، حيث تتخرب الجداول وتفقد المعادلات الرياضية نسقها وتلتف الاتجاهات العربية بطريقة غير متناسقة.'
-                : 'midadd was built to bridge the gap between modern generative AI text models and professional office productivity suites. When users copy markdown text from AI chatbots into traditional word processors, formatting often breaks.'}
+                ? 'يعتمد الملايين من الطلاب والباحثين والمديرين يومياً على نماذج الذكاء الاصطناعي لصياغة المسودات الأولية، لكن نقل تلك المخرجات إلى Microsoft Word أو Google Docs يستهلك وقتاً طويلاً في إصلاح العناوين والرموز، وإعادة رسم الجداول، وتصحيح المعادلات الرياضية المنكسرة.'
+                : 'Millions of students, researchers, and writers rely on generative AI for initial drafts, yet moving those responses into Microsoft Word or Google Docs wastes hours fixing broken headings, collapsed tables, and garbled equations.'}
             </p>
-            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+            <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
               {isAr
-                ? 'يقدم محرر مداد الحل المباشر عبر تحويل هياكل Markdown تلقائياً إلى مستندات Word معتمدة تتضمن الجداول الملونة، الرؤوس والأذيال، الاتجاه الصحيح للنص، وخيارات الطباعة بجودة العرض النهائي.'
-                : 'Our custom rendering pipeline preserves table styling, code blocks, document margins, and math notation so you can export publish-ready reports in seconds.'}
+                ? 'تقدم منصة مداد محرراً متكاملاً بأسلوب برامج معالجة النصوص القياسية، مدعوماً بأكثر من 22 قالباً عربياً وإنجليزياً جاهزاً، وأدلة إرشادية مفصلة تساعد المستخدمين على إتقان كتابة المستندات الأكاديمية والتجارية بأعلى معايير الجودة.'
+                : 'midadd solves this bottleneck through a clean Word-style authoring canvas, over 22 domain-ready templates, and in-depth technical guides that help writers publish structured reports in seconds.'}
             </p>
-          </section>
+          </div>
 
-          <section className="space-y-3 pt-4 border-t border-slate-200 dark:border-slate-800">
+          <div className="space-y-3 pt-6 border-t border-slate-200 dark:border-slate-800">
             <h2 className="text-xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
               <ShieldCheck className="h-5 w-5 text-emerald-600" />
-              <span>{isAr ? 'الشفافية وسياسة الاستخدام العادل' : 'Transparency & Operational Integrity'}</span>
+              <span>{isAr ? 'الشفافية ومعايير الجودة التحريرية' : 'Editorial Transparency & Operational Integrity'}</span>
             </h2>
-            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+            <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
               {isAr
-                ? 'نحن نلتزم بتقديم خدمة شفافة تماماً. يتمتع المستخدمون برصيد مجاني دوري لاستخدام المحرر، بالإضافة إلى إمكانية ترقية الحساب لشحن رصيد دائم دون تجديدات تلقائية مخفية. كما نضمن الامتثال التام لسياسات الناشرين وإعلانات Google AdSense ونوفر شروط استخدام وسياسة خصوصية واضحة.'
-                : 'We operate with full commercial and technical transparency. Free tiers are provided to help users evaluate midadd, with optional top-up options. We adhere strictly to Google Publisher Policies.'}
+                ? 'نلتزم بتقديم تجربة واضحة ومباشرة بدون رسوم مخفية؛ حيث يحصل كل زائر على أرصدة مجانية لتجربة المنصة بالكامل، مع توفير محتوى تعليمي مجاني متجدد عبر قسم الأدلة الإرشادية والالتزام الكامل بسياسات الخصوصية وحقوق الملكية الفكرية.'
+                : 'We maintain full transparency with complimentary starter credits, freely accessible educational guides, clear privacy disclosures, and strict respect for user intellectual property.'}
             </p>
-          </section>
+          </div>
 
-          {/* Contact Banner */}
+          {/* Actions Banner */}
           <div className="p-6 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div>
               <h3 className="font-extrabold text-sm text-slate-900 dark:text-white mb-1">
-                {isAr ? 'هل لديك أي استفسار أو اقتراح؟' : 'Have Questions or Feedback?'}
+                {isAr ? 'استكشف الأدلة الإرشادية أو تواصل مع فريقنا' : 'Explore Our Guides or Contact Support'}
               </h3>
               <p className="text-xs text-slate-500">
-                {isAr ? 'فريق الدعم الفني جاهز للإجابة على جميع الاستفسارات.' : 'Our support team is available to assist you promptly.'}
+                {isAr
+                  ? 'فريق مداد متاح للرد على استفساراتكم واقتراحاتكم خلال 24 ساعة.'
+                  : 'Our team is ready to help with technical questions or partnership requests within 24 hours.'}
               </p>
             </div>
-            <Link
-              href="/contact"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md shadow-indigo-600/30 transition shrink-0"
-            >
-              <Mail className="h-4 w-4" />
-              <span>{isAr ? 'تواصل معنا الآن' : 'Contact Support'}</span>
-            </Link>
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              <Link
+                href="/guides"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 font-bold text-xs transition"
+              >
+                <BookOpen className="h-4 w-4" />
+                <span>{isAr ? 'الأدلة الإرشادية' : 'Read Guides'}</span>
+              </Link>
+              <Link
+                href="/contact"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-sm transition"
+              >
+                <Mail className="h-4 w-4" />
+                <span>{isAr ? 'اتصل بنا الآن' : 'Contact Us'}</span>
+              </Link>
+            </div>
           </div>
-        </div>
+        </section>
+
+        <AdSlot slotId="about-bottom-01" format="horizontal" />
       </main>
 
       <Footer />

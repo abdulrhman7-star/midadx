@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
+import { AdSlot } from '@/components/AdSlot';
 import { useLanguage } from '@/components/LanguageContext';
 import { useSession, useSavedDocsList, logoutAccount, addCredits } from '@/lib/guest-session';
 import { useTheme } from '@/lib/theme';
@@ -177,8 +178,6 @@ export default function PricingPage() {
       <Header
         session={session}
         savedDocsCount={savedDocs.length}
-        onOpenSavedDocs={() => {}}
-        onOpenAuthModal={() => {}}
         onLogout={logoutAccount}
         isDark={isDark}
         onToggleTheme={toggleTheme}
@@ -331,6 +330,10 @@ export default function PricingPage() {
           })}
         </div>
       </section>
+
+      <div className="max-w-4xl mx-auto px-4 w-full">
+        <AdSlot slotId="pricing-bottom-01" format="horizontal" />
+      </div>
 
       <Footer />
     </div>

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
+import { AdSlot } from '@/components/AdSlot';
 import { useLanguage } from '@/components/LanguageContext';
 import { useSession, useSavedDocsList, logoutAccount } from '@/lib/guest-session';
 import { useTheme } from '@/lib/theme';
@@ -2452,8 +2453,6 @@ export default function TemplatesPage() {
       <Header
         session={session}
         savedDocsCount={savedDocs.length}
-        onOpenSavedDocs={() => {}}
-        onOpenAuthModal={() => {}}
         onLogout={logoutAccount}
         isDark={isDark}
         onToggleTheme={toggleTheme}
@@ -2642,6 +2641,7 @@ export default function TemplatesPage() {
             })}
           </div>
         )}
+        <AdSlot slotId="templates-bottom-01" format="horizontal" />
       </main>
 
       {/* Preview modal */}

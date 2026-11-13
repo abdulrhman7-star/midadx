@@ -1,1 +1,4 @@
-google.com, pub-2915749615185077, DIRECT, f08c47fec0942fa0
+# ملف ads.txt المعتمد لحساب Google AdSense
+# ضع معرف الناشر الخاص بك بدلاً من المعرف الافتراضي إذا تغير مستقبلاً:
+# الصيغة القياسية: google.com, pub-XXXXXXXXXXXXXXXX, DIRECT, f08c47fec0942fa0
+google.com, pub-7623404336729587, DIRECT, f08c47fec0942fa0
