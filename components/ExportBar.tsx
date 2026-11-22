@@ -12,10 +12,12 @@ import {
   Sparkles,
   Command,
   Loader2,
+  Eye,
 } from 'lucide-react';
 
 interface ExportBarProps {
   onOpenInsertModal: () => void;
+  onOpenPreview?: () => void;
   onExportDocx: () => Promise<void>;
   onExportPdf: () => void;
   onCopyGoogleDocs: () => Promise<boolean>;
@@ -26,6 +28,7 @@ interface ExportBarProps {
 
 export const ExportBar: React.FC<ExportBarProps> = ({
   onOpenInsertModal,
+  onOpenPreview,
   onExportDocx,
   onExportPdf,
   onCopyGoogleDocs,
@@ -33,7 +36,8 @@ export const ExportBar: React.FC<ExportBarProps> = ({
   onClearDoc,
   isExporting,
 }) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const isAr = language === 'ar';
   const [copiedGDocs, setCopiedGDocs] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -78,8 +82,26 @@ export const ExportBar: React.FC<ExportBarProps> = ({
           </button>
         </div>
 
-        {/* Action Buttons: DOCX, PDF, Google Docs, Save, Clear */}
+        {/* Action Buttons: Preview, DOCX, PDF, Google Docs, Save, Clear */}
         <div className="w-full sm:w-auto flex flex-wrap items-center justify-between sm:justify-end gap-1.5 sm:gap-2">
+          {/* High-Fidelity Preview Modal Button */}
+          {onOpenPreview && (
+            <button
+              type="button"
+              onClick={onOpenPreview}
+              data-testid="export-preview-button"
+              className="flex-1 sm:flex-none inline-flex items-center justify-center space-x-1.5 rtl:space-x-reverse px-3 sm:px-3.5 py-2 min-h-[40px] rounded-lg border border-indigo-200 dark:border-indigo-800 bg-indigo-50/90 hover:bg-indigo-100 dark:bg-indigo-950/50 dark:hover:bg-indigo-900/60 text-indigo-700 dark:text-indigo-200 text-xs sm:text-sm font-semibold shadow-2xs transition cursor-pointer"
+              title={
+                isAr
+                  ? 'معاينة الشكل النهائي للتصدير (PDF / DOCX)'
+                  : 'Preview final exported PDF / DOCX layout'
+              }
+            >
+              <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+              <span className="whitespace-nowrap">{isAr ? 'معاينة' : 'Preview'}</span>
+            </button>
+          )}
+
           {/* Download DOCX (Primary Word Document Export) */}
           <button
             onClick={onExportDocx}

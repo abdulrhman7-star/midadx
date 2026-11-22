@@ -101,6 +101,8 @@ interface EditorProps {
   isExporting?: boolean;
   currentDocId?: string;
   docxBase64?: string;
+  formatting?: WordFormattingOptions;
+  onChangeFormatting?: (opts: Partial<WordFormattingOptions>) => void;
 }
 
 export const Editor = forwardRef<EditorHandle, EditorProps>((props, ref) => {
@@ -118,14 +120,16 @@ export const Editor = forwardRef<EditorHandle, EditorProps>((props, ref) => {
     isExporting = false,
     currentDocId,
     docxBase64,
+    formatting: controlledFormatting,
+    onChangeFormatting: onControlledChangeFormatting,
   } = props;
   const { direction, language, t } = useLanguage();
   const isAr = language === 'ar';
   const session = useSession();
   const [isDark] = useTheme();
 
-  // Word Editor Formatting & Layout Settings
-  const [formatting, setFormatting] = useState<WordFormattingOptions>({
+  // Word Editor Formatting & Layout Settings (supports controlled state from parent or local fallback)
+  const [internalFormatting, setInternalFormatting] = useState<WordFormattingOptions>({
     fontFamily: 'Segoe UI',
     fontSize: 11,
     orientation: 'portrait',
@@ -137,6 +141,7 @@ export const Editor = forwardRef<EditorHandle, EditorProps>((props, ref) => {
     zoomLevel: 100,
     direction: direction,
   });
+  const formatting = controlledFormatting ?? internalFormatting;
 
   // Default viewMode is instant interactive Print Layout (A4 Paper)!
   const [viewMode, setViewMode] = useState<ViewMode>('print');
@@ -211,7 +216,17 @@ export const Editor = forwardRef<EditorHandle, EditorProps>((props, ref) => {
       if (markdown !== lastPackedMarkdownRef.current || (!docxBytes && markdown)) {
         try {
           setIsInitializingDocx(true);
-          const bytes = await markdownToDocxBytes(markdown);
+          const bytes = await markdownToDocxBytes(markdown, {
+            orientation: formatting.orientation,
+            paperSize: formatting.paperSize,
+            margins: formatting.margins,
+            fontFamily: formatting.fontFamily,
+            fontSize: formatting.fontSize,
+            lineSpacing: formatting.lineSpacing,
+            watermark: formatting.watermark,
+            headerText: documentTitle,
+            direction: formatting.direction,
+          });
           if (active) {
             setDocxBytes(bytes);
             if (eigenEditorRef.current) {
@@ -250,7 +265,20 @@ export const Editor = forwardRef<EditorHandle, EditorProps>((props, ref) => {
     return () => {
       active = false;
     };
-  }, [docxBase64, markdown, docxBytes]);
+  }, [
+    docxBase64,
+    markdown,
+    docxBytes,
+    documentTitle,
+    formatting.direction,
+    formatting.fontFamily,
+    formatting.fontSize,
+    formatting.lineSpacing,
+    formatting.margins,
+    formatting.orientation,
+    formatting.paperSize,
+    formatting.watermark,
+  ]);
 
   // Sync internal history with markdown prop if it changes externally
   useEffect(() => {
@@ -665,7 +693,11 @@ export const Editor = forwardRef<EditorHandle, EditorProps>((props, ref) => {
   ]);
 
   const updateFormatting = (opts: Partial<WordFormattingOptions>) => {
-    setFormatting(prev => ({ ...prev, ...opts }));
+    if (onControlledChangeFormatting) {
+      onControlledChangeFormatting(opts);
+    } else {
+      setInternalFormatting(prev => ({ ...prev, ...opts }));
+    }
   };
 
   const handleInsertTable = () => {
@@ -824,7 +856,17 @@ export const Editor = forwardRef<EditorHandle, EditorProps>((props, ref) => {
     updateMarkdownWithHistory(preset.markdown);
     onChangeTitle(direction === 'rtl' ? preset.titleAr : preset.titleEn);
     try {
-      const bytes = await markdownToDocxBytes(preset.markdown);
+      const bytes = await markdownToDocxBytes(preset.markdown, {
+        orientation: formatting.orientation,
+        paperSize: formatting.paperSize,
+        margins: formatting.margins,
+        fontFamily: formatting.fontFamily,
+        fontSize: formatting.fontSize,
+        lineSpacing: formatting.lineSpacing,
+        watermark: formatting.watermark,
+        headerText: direction === 'rtl' ? preset.titleAr : preset.titleEn,
+        direction: formatting.direction,
+      });
       setDocxBytes(bytes);
       if (eigenEditorRef.current) {
         eigenEditorRef.current.loadDocument(bytes);

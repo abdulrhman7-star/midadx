@@ -35,29 +35,66 @@ export function htmlToMarkdown(html: string): string {
         return `$${dataLatex}$`;
       }
 
+      const wrapWithSpaces = (raw: string, open: string, close: string): string => {
+        if (!raw) return '';
+        const m = raw.match(/^(\s*)([\s\S]*?)(\s*)$/);
+        if (!m || !m[2]) return raw;
+        return `${m[1]}${open}${m[2]}${close}${m[3]}`;
+      };
+
+      const rawAlign = el.style?.textAlign?.toLowerCase() || el.getAttribute('align')?.toLowerCase() || '';
+      const explicitAlign =
+        rawAlign === 'center' || rawAlign === 'right' || rawAlign === 'left' || rawAlign === 'justify'
+          ? rawAlign
+          : '';
+
+      // Detect page break divs inserted by WordRibbon
+      if (tag === 'div' && el.style?.pageBreakAfter === 'always') {
+        return '\n\n<div style="page-break-after: always; height: 1px; margin: 30px 0; border-bottom: 2px dashed #cbd5e1;"></div>\n\n';
+      }
+
       switch (tag) {
         case 'h1':
-          return `\n\n# ${childrenText.trim()}\n\n`;
         case 'h2':
-          return `\n\n## ${childrenText.trim()}\n\n`;
         case 'h3':
-          return `\n\n### ${childrenText.trim()}\n\n`;
         case 'h4':
-          return `\n\n#### ${childrenText.trim()}\n\n`;
-        case 'p':
-          return `\n\n${childrenText.trim()}\n\n`;
+        case 'h5':
+        case 'h6': {
+          const level = Number(tag.slice(1));
+          const inner = childrenText.trim();
+          if (explicitAlign) {
+            return `\n\n<${tag} style="text-align: ${explicitAlign}">${inner}</${tag}>\n\n`;
+          }
+          return `\n\n${'#'.repeat(level)} ${inner}\n\n`;
+        }
+        case 'p': {
+          const inner = childrenText.trim();
+          if (!inner) return '';
+          if (explicitAlign) {
+            return `\n\n<p style="text-align: ${explicitAlign}">${inner}</p>\n\n`;
+          }
+          return `\n\n${inner}\n\n`;
+        }
+        case 'div': {
+          const inner = childrenText.trim();
+          if (!inner) return '';
+          if (explicitAlign) {
+            return `\n\n<p style="text-align: ${explicitAlign}">${inner}</p>\n\n`;
+          }
+          return `\n\n${childrenText}\n\n`;
+        }
         case 'strong':
         case 'b':
-          return `**${childrenText.trim()}**`;
+          return wrapWithSpaces(childrenText, '**', '**');
         case 'em':
         case 'i':
-          return `*${childrenText.trim()}*`;
+          return wrapWithSpaces(childrenText, '*', '*');
         case 'u':
-          return `<u>${childrenText}</u>`;
+          return wrapWithSpaces(childrenText, '<u>', '</u>');
         case 's':
         case 'del':
         case 'strike':
-          return `~~${childrenText.trim()}~~`;
+          return wrapWithSpaces(childrenText, '~~', '~~');
         case 'sub':
           return `<sub>${childrenText}</sub>`;
         case 'sup':
@@ -80,8 +117,13 @@ export function htmlToMarkdown(html: string): string {
           const alt = el.getAttribute('alt') || 'Image';
           return `\n\n![${alt}](${src})\n\n`;
         }
-        case 'blockquote':
-          return `\n\n> ${childrenText.trim().replace(/\n/g, '\n> ')}\n\n`;
+        case 'blockquote': {
+          const inner = childrenText.trim();
+          if (explicitAlign) {
+            return `\n\n<blockquote style="text-align: ${explicitAlign}">${inner}</blockquote>\n\n`;
+          }
+          return `\n\n> ${inner.replace(/\n/g, '\n> ')}\n\n`;
+        }
         case 'ul': {
           const items = Array.from(el.children)
             .map(li => `- ${nodeToMarkdown(li).trim()}`)
@@ -142,10 +184,18 @@ export function htmlToMarkdown(html: string): string {
           return `[${childrenText}](${href})`;
         }
         case 'span': {
-          if (el.style && el.style.color) {
-            return `<span style="color: ${el.style.color}">${childrenText}</span>`;
+          let out = childrenText;
+          const textColor = el.style?.color;
+          const bgColor = el.style?.backgroundColor;
+          const isTransparentBg =
+            !bgColor || bgColor === 'transparent' || bgColor === 'rgba(0, 0, 0, 0)';
+          if (textColor) {
+            out = `<span style="color: ${textColor}">${out}</span>`;
           }
-          return childrenText;
+          if (!isTransparentBg) {
+            out = `<mark style="background-color: ${bgColor}">${out}</mark>`;
+          }
+          return out;
         }
         case 'mark': {
           if (el.style && el.style.backgroundColor) {

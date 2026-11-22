@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import confetti from 'canvas-confetti';
 import nextDynamic from 'next/dynamic';
 import { useLanguage } from '@/components/LanguageContext';
@@ -12,9 +12,11 @@ import { ExportBar } from '@/components/ExportBar';
 import { Footer } from '@/components/Footer';
 import { HomeEditorialSection } from '@/components/HomeEditorialSection';
 import { InsertContentModal } from '@/components/InsertContentModal';
+import { ExportPreviewModal } from '@/components/ExportPreviewModal';
 import { AuthModal } from '@/components/AuthModals';
 import { SavedDocumentsDrawer } from '@/components/SavedDocumentsDrawer';
-import { exportToDocx } from '@/lib/docx-export';
+import type { WordFormattingOptions } from '@/components/WordRibbon';
+import { exportToDocx, DocxExportOptions } from '@/lib/docx-export';
 import { copyForGoogleDocs } from '@/lib/google-docs-copy';
 import {
   useSession,
@@ -131,11 +133,59 @@ function PlaygroundApp() {
 
   // Modals & Drawers
   const [isInsertModalOpen, setIsInsertModalOpen] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isSavedDrawerOpen, setIsSavedDrawerOpen] = useState(false);
   const [isOutOfCreditsOpen, setIsOutOfCreditsOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [templateNotification, setTemplateNotification] = useState<string | null>(null);
+
+  // Shared editor formatting state for exact parity between Editor, Export Preview, and DOCX Export
+  const [directionOverride, setDirectionOverride] = useState<'rtl' | 'ltr' | null>(null);
+  const [editorFormattingBase, setEditorFormattingBase] = useState<Omit<WordFormattingOptions, 'direction'>>({
+    fontFamily: 'Segoe UI',
+    fontSize: 11,
+    orientation: 'portrait',
+    paperSize: 'a4',
+    margins: 'normal',
+    lineSpacing: '1.15',
+    watermark: '',
+    showRuler: true,
+    zoomLevel: 100,
+  });
+
+  const editorFormatting = useMemo<WordFormattingOptions>(
+    () => ({
+      ...editorFormattingBase,
+      direction: directionOverride ?? direction,
+    }),
+    [editorFormattingBase, directionOverride, direction]
+  );
+
+  const handleChangeFormatting = (opts: Partial<WordFormattingOptions>) => {
+    const { direction: nextDir, ...rest } = opts;
+    if (nextDir) {
+      setDirectionOverride(nextDir);
+    }
+    if (Object.keys(rest).length > 0) {
+      setEditorFormattingBase(prev => ({ ...prev, ...rest }));
+    }
+  };
+
+  const docxExportOptions = useMemo<DocxExportOptions>(
+    () => ({
+      orientation: editorFormatting.orientation,
+      paperSize: editorFormatting.paperSize,
+      margins: editorFormatting.margins,
+      fontFamily: editorFormatting.fontFamily,
+      fontSize: editorFormatting.fontSize,
+      lineSpacing: editorFormatting.lineSpacing,
+      watermark: editorFormatting.watermark,
+      headerText: documentTitle,
+      direction: editorFormatting.direction,
+    }),
+    [editorFormatting, documentTitle]
+  );
 
   // Sync Firebase Auth state with local session
   useEffect(() => {
@@ -283,7 +333,10 @@ function PlaygroundApp() {
         documentTitle.replace(/[^a-zA-Z0-9_\-\u0600-\u06FF]/g, '_').trim() ||
         'midadd-document';
       const filename = `${safeName}.docx`;
-      await exportToDocx(markdown, filename, { direction: exportDirection });
+      await exportToDocx(markdown, filename, {
+        ...docxExportOptions,
+        direction: exportDirection || docxExportOptions.direction,
+      });
 
       deductCredit();
 
@@ -408,7 +461,8 @@ function PlaygroundApp() {
       {/* Export Bar */}
       <ExportBar
         onOpenInsertModal={() => setIsInsertModalOpen(true)}
-        onExportDocx={() => handleExportDocx(direction)}
+        onOpenPreview={() => setIsPreviewOpen(true)}
+        onExportDocx={() => handleExportDocx(editorFormatting.direction)}
         onExportPdf={handleExportPdf}
         onCopyGoogleDocs={handleCopyGoogleDocs}
         onSaveDoc={handleSaveDoc}
@@ -454,6 +508,8 @@ function PlaygroundApp() {
           isExporting={isExporting}
           currentDocId={currentDocId}
           docxBase64={docxBase64}
+          formatting={editorFormatting}
+          onChangeFormatting={handleChangeFormatting}
         />
         <HomeEditorialSection />
       </main>
@@ -463,6 +519,18 @@ function PlaygroundApp() {
         isOpen={isInsertModalOpen}
         onClose={() => setIsInsertModalOpen(false)}
         onInsertMarkdown={handleInsertMarkdown}
+      />
+
+      {/* Shared-Logic DOCX / PDF Export Preview Modal */}
+      <ExportPreviewModal
+        isOpen={isPreviewOpen}
+        onClose={() => setIsPreviewOpen(false)}
+        markdown={markdown}
+        documentTitle={documentTitle}
+        exportOptions={docxExportOptions}
+        onExportDocx={() => handleExportDocx(editorFormatting.direction)}
+        onExportPdf={handleExportPdf}
+        isExporting={isExporting}
       />
 
       {/* Auth / Out of Credits Modal */}
@@ -483,7 +551,7 @@ function PlaygroundApp() {
         documents={savedDocs}
         onSelectDoc={handleSelectSavedDoc}
         onDeleteDoc={handleDeleteSavedDoc}
-        onExportDocx={(md, title) => exportToDocx(md, `${title}.docx`)}
+        onExportDocx={(md, title) => exportToDocx(md, `${title}.docx`, docxExportOptions)}
         onNewDoc={handleNewDoc}
       />
 

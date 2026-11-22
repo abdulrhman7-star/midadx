@@ -253,10 +253,34 @@ export function markdownToHtml(markdown: string, direction: 'rtl' | 'ltr' = 'ltr
       continue;
     }
 
-    // 8.5 Existing HTML block or aligned paragraph: <p style="...">, <div style="...">, <img ...>
+    // 8.5 Existing HTML block or aligned heading/paragraph: <p style="...">, <h1 style="...">, <div style="...">, <img ...>
+    const alignedBlockMatch = trimmed.match(/^<(h[1-6]|p|blockquote)(\s+[^>]*)?>([\s\S]*)<\/\1>$/i);
+    if (alignedBlockMatch) {
+      flushList();
+      const tag = alignedBlockMatch[1].toLowerCase();
+      const attrs = alignedBlockMatch[2] || '';
+      const inner = alignedBlockMatch[3] || '';
+      const defaultClasses: Record<string, string> = {
+        h1: 'text-2xl sm:text-3xl font-extrabold mt-6 mb-4 text-slate-900 dark:text-slate-50 tracking-tight',
+        h2: 'text-xl font-bold mt-6 mb-3 text-slate-900 dark:text-slate-50 pb-1 border-b border-slate-200 dark:border-slate-800',
+        h3: 'text-lg font-bold mt-5 mb-2 text-slate-900 dark:text-slate-50',
+        h4: 'text-base font-semibold mt-4 mb-2 text-slate-800 dark:text-slate-100',
+        h5: 'text-sm font-semibold mt-3 mb-1.5 text-slate-800 dark:text-slate-100',
+        h6: 'text-sm font-medium mt-3 mb-1.5 text-slate-700 dark:text-slate-200',
+        p: 'my-3 leading-relaxed text-slate-700 dark:text-slate-300',
+        blockquote: 'border-l-4 border-indigo-500 pl-4 py-1.5 my-3 italic bg-indigo-50/50 dark:bg-indigo-950/30 rounded-r text-slate-700 dark:text-slate-300',
+      };
+      const hasClass = /\bclass\s*=/i.test(attrs);
+      const classAttr = hasClass ? '' : ` class="${defaultClasses[tag] || ''}"`;
+      const hasDir = /\bdir\s*=/i.test(attrs);
+      const dirAttr = hasDir ? '' : ` dir="${direction}"`;
+      htmlParts.push(`<${tag}${attrs}${classAttr}${dirAttr}>${parseInlineMarkdown(inner)}</${tag}>`);
+      continue;
+    }
+
     if (/^<(p|div|img|figure|table|blockquote|h1|h2|h3|h4|h5|h6)\b/i.test(trimmed)) {
       flushList();
-      htmlParts.push(parseInlineMarkdown(line));
+      htmlParts.push(line);
       continue;
     }
 
