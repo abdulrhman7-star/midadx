@@ -7,6 +7,7 @@ import confetti from 'canvas-confetti';
 import nextDynamic from 'next/dynamic';
 import { useLanguage } from '@/components/LanguageContext';
 import { Header } from '@/components/Header';
+import { HomeHeroSection } from '@/components/HomeHeroSection';
 import { ExportBar } from '@/components/ExportBar';
 import { Footer } from '@/components/Footer';
 import { HomeEditorialSection } from '@/components/HomeEditorialSection';
@@ -245,6 +246,21 @@ function PlaygroundApp() {
 
   const editorRef = useRef<any>(null);
 
+  const handleStartNow = () => {
+    const workspace = document.getElementById('editor-workspace');
+    if (workspace) {
+      workspace.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const editable = workspace.querySelector(
+        '[contenteditable="true"], textarea'
+      ) as HTMLElement | null;
+      if (editable) {
+        setTimeout(() => editable.focus({ preventScroll: true }), 350);
+      }
+    } else {
+      setIsInsertModalOpen(true);
+    }
+  };
+
   // ... (rest of the component state and logic)
 
   // تصدير DOCX مع فحص الأرصدة
@@ -392,6 +408,9 @@ function PlaygroundApp() {
         onToggleTheme={toggleTheme}
       />
 
+      {/* Framed Hero Section directly below Header */}
+      <HomeHeroSection onStartNow={handleStartNow} />
+
       {/* Export Bar */}
       <ExportBar
         onOpenInsertModal={() => setIsInsertModalOpen(true)}
@@ -422,12 +441,10 @@ function PlaygroundApp() {
       )}
 
       {/* Editor Canvas */}
-      <main className="flex-1 w-full max-w-7xl mx-auto px-2 sm:px-4 lg:px-6 py-2 sm:py-4">
-        <h1 className="sr-only">
-          {direction === 'rtl'
-            ? 'مداد — محرر ومحوّل نصوص الذكاء الاصطناعي إلى مستندات Word وPDF احترافية'
-            : 'midadd — AI Markdown to Professional Word & PDF Document Converter'}
-        </h1>
+      <main
+        id="editor-workspace"
+        className="flex-1 w-full max-w-7xl mx-auto px-2 sm:px-4 lg:px-6 py-2 sm:py-4 scroll-mt-36"
+      >
         <Editor
           ref={editorRef}
           markdown={markdown}
