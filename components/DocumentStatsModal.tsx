@@ -1,6 +1,7 @@
 import React from 'react';
-import { X, FileText, Type, AlignLeft, Clock, Mic, CheckCircle2 } from 'lucide-react';
+import { X, FileText, Clock, Mic } from 'lucide-react';
 import { useLanguage } from './LanguageContext';
+import { calculateDocumentStats, formatReadingTime } from '@/lib/text-stats';
 
 interface DocumentStatsModalProps {
   isOpen: boolean;
@@ -15,21 +16,20 @@ export const DocumentStatsModal: React.FC<DocumentStatsModalProps> = ({
   markdown,
   documentTitle,
 }) => {
-  const { language, t } = useLanguage();
+  const { language } = useLanguage();
   const isAr = language === 'ar';
 
   if (!isOpen) return null;
 
-  const cleanText = markdown.replace(/[#*`~>|\[\]\-_$]/g, ' ');
-  const words = cleanText.trim().split(/\s+/).filter(Boolean).length;
-  const charactersWithSpaces = markdown.length;
-  const charactersNoSpaces = markdown.replace(/\s/g, '').length;
-  const paragraphs = markdown.split(/\n\s*\n/).filter(p => p.trim().length > 0).length;
-  const sentences = markdown.split(/[.!?]+/).filter(s => s.trim().length > 0).length;
-  const lines = markdown.split('\n').length;
-
-  const readingMinutes = Math.max(1, Math.ceil(words / 200));
-  const speakingMinutes = Math.max(1, Math.ceil(words / 130));
+  const stats = calculateDocumentStats(markdown);
+  const words = stats.words;
+  const charactersWithSpaces = stats.characters;
+  const charactersNoSpaces = stats.charactersNoSpaces;
+  const paragraphs = stats.paragraphs;
+  const sentences = stats.sentences;
+  const lines = stats.lines;
+  const formattedReadingTime = formatReadingTime(stats, language);
+  const speakingMinutes = stats.speakingMinutes;
 
   // Count tables, equations, code blocks
   const tableMatches = (markdown.match(/\|[\s\S]*?\|/g) || []).length;
@@ -123,14 +123,23 @@ export const DocumentStatsModal: React.FC<DocumentStatsModalProps> = ({
           <div className="flex items-center space-x-2 rtl:space-x-reverse text-blue-900 dark:text-blue-200">
             <Clock className="h-4 w-4 text-blue-600 dark:text-blue-400" />
             <span>
-              {isAr ? 'وقت القراءة:' : 'Reading Time:'} <strong>~{readingMinutes} {isAr ? 'دقيقة' : 'min'}</strong>
+              {isAr ? 'وقت القراءة:' : 'Reading Time:'} <strong>{formattedReadingTime}</strong>
             </span>
           </div>
           <div className="h-4 w-px bg-blue-200 dark:bg-blue-800" />
           <div className="flex items-center space-x-2 rtl:space-x-reverse text-blue-900 dark:text-blue-200">
             <Mic className="h-4 w-4 text-blue-600 dark:text-blue-400" />
             <span>
-              {isAr ? 'وقت الإلقاء:' : 'Speaking Time:'} <strong>~{speakingMinutes} {isAr ? 'دقيقة' : 'min'}</strong>
+              {isAr ? 'وقت الإلقاء:' : 'Speaking Time:'}{' '}
+              <strong>
+                {speakingMinutes === 0
+                  ? isAr
+                    ? '0 دقيقة'
+                    : '0 min'
+                  : isAr
+                  ? `~${speakingMinutes} دقيقة`
+                  : `~${speakingMinutes} min`}
+              </strong>
             </span>
           </div>
         </div>

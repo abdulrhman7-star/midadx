@@ -7,6 +7,7 @@ import { useLanguage } from './LanguageContext';
 import { markdownToHtml, SAMPLE_MARKDOWN_PRESETS } from '@/lib/markdown-to-html';
 import { renderLatexHtml } from '@/lib/latex-to-omml';
 import { importDocxFile, htmlToMarkdown } from '@/lib/docx-import';
+import { calculateDocumentStats, formatReadingTime } from '@/lib/text-stats';
 import { WordRibbon, WordFormattingOptions, ViewMode } from './WordRibbon';
 import { WordRuler } from './WordRuler';
 import { DocumentStatsModal } from './DocumentStatsModal';
@@ -47,6 +48,8 @@ import {
   Undo2,
   Redo2,
   ExternalLink,
+  Type,
+  BarChart3,
 } from 'lucide-react';
 
 const EigenDocxEditor = dynamic(
@@ -116,7 +119,8 @@ export const Editor = forwardRef<EditorHandle, EditorProps>((props, ref) => {
     currentDocId,
     docxBase64,
   } = props;
-  const { direction, t } = useLanguage();
+  const { direction, language, t } = useLanguage();
+  const isAr = language === 'ar';
   const session = useSession();
   const [isDark] = useTheme();
 
@@ -825,14 +829,16 @@ export const Editor = forwardRef<EditorHandle, EditorProps>((props, ref) => {
     scheduleAutosave();
   };
 
-  // Word & Page Metrics
-  const words = useMemo(() => {
-    return markdown.trim().split(/\s+/).filter(Boolean).length;
-  }, [markdown]);
-
-  const chars = useMemo(() => markdown.length, [markdown]);
-  const lines = useMemo(() => linesCount(markdown), [markdown]);
-  const estimatedPages = useMemo(() => Math.max(1, Math.ceil(words / 320)), [words]);
+  // Real-time Word, Character & Reading Time Metrics
+  const docStats = useMemo(() => calculateDocumentStats(markdown), [markdown]);
+  const words = docStats.words;
+  const chars = docStats.characters;
+  const lines = docStats.lines;
+  const estimatedPages = docStats.estimatedPages;
+  const readingTimeLabel = useMemo(
+    () => formatReadingTime(docStats, language),
+    [docStats, language]
+  );
 
   const paperOrientationWidth =
     formatting.orientation === 'landscape'
@@ -1228,6 +1234,81 @@ export const Editor = forwardRef<EditorHandle, EditorProps>((props, ref) => {
               />
             </div>
           )}
+        </div>
+
+        {/* Dynamic Real-Time Editor Status Bar (Word Counter, Characters & Reading Time) */}
+        <div
+          role="status"
+          aria-live="polite"
+          data-testid="editor-status-bar"
+          className="no-print px-3 sm:px-6 py-2.5 border-t border-slate-200 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-950/90 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600 dark:text-slate-400 select-none"
+        >
+          <button
+            type="button"
+            onClick={() => setShowStatsModal(true)}
+            data-testid="word-counter-trigger"
+            className="inline-flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg px-2 py-1 -mx-2 hover:bg-slate-200/70 dark:hover:bg-slate-800/70 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
+            title={
+              isAr
+                ? 'عرض إحصائيات المستند التفصيلية'
+                : 'Open detailed document statistics'
+            }
+          >
+            <span className="inline-flex items-center gap-1.5">
+              <FileText className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
+              <span
+                data-testid="word-count-value"
+                className="font-bold text-slate-900 dark:text-white tabular-nums"
+              >
+                {words.toLocaleString()}
+              </span>
+              <span>{isAr ? 'كلمة' : words === 1 ? 'word' : 'words'}</span>
+            </span>
+
+            <span aria-hidden="true" className="text-slate-300 dark:text-slate-700">
+              |
+            </span>
+
+            <span className="inline-flex items-center gap-1.5">
+              <Type className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400 shrink-0" />
+              <span
+                data-testid="char-count-value"
+                className="font-bold text-slate-900 dark:text-white tabular-nums"
+              >
+                {chars.toLocaleString()}
+              </span>
+              <span>{isAr ? 'حرف' : chars === 1 ? 'char' : 'chars'}</span>
+            </span>
+
+            <span aria-hidden="true" className="text-slate-300 dark:text-slate-700">
+              |
+            </span>
+
+            <span className="inline-flex items-center gap-1.5">
+              <Clock className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <span
+                data-testid="reading-time-value"
+                className="font-bold text-slate-900 dark:text-white tabular-nums"
+              >
+                {readingTimeLabel}
+              </span>
+              <span>{isAr ? 'للقراءة' : 'read'}</span>
+            </span>
+
+            <BarChart3 className="h-3.5 w-3.5 text-slate-400 hidden sm:inline shrink-0" />
+          </button>
+
+          <div className="flex items-center gap-3 text-[11px] font-semibold text-slate-500 dark:text-slate-400 tabular-nums">
+            <span>
+              {isAr
+                ? `صفحة 1 من ${estimatedPages}`
+                : `Page 1 of ${estimatedPages}`}
+            </span>
+            <span aria-hidden="true" className="text-slate-300 dark:text-slate-700">
+              •
+            </span>
+            <span className="uppercase">{formatting.direction}</span>
+          </div>
         </div>
       </div>
 
