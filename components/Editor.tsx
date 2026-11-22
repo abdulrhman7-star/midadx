@@ -84,7 +84,7 @@ const EigenDocxEditor = dynamic(
 ) as typeof import('./EigenDocxEditor').EigenDocxEditor;
 
 export interface EditorHandle {
-  exportDocument: () => Promise<void>;
+  exportDocument: () => Promise<boolean>;
 }
 
 interface EditorProps {
@@ -358,18 +358,22 @@ export const Editor = forwardRef<EditorHandle, EditorProps>((props, ref) => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleManualSave]);
 
-  // Download real DOCX binary file from EigenPal editor
-  const handleDownloadRealDocx = useCallback(async () => {
+  // Download real DOCX binary file from EigenPal editor if active.
+  // Returns true if exported directly from the engine, or false so the caller
+  // can fall back to markdown-to-DOCX generation without causing recursion.
+  const handleDownloadRealDocx = useCallback(async (): Promise<boolean> => {
     if (session.credits <= 0) {
-      onExportDocx(formatting.direction);
-      return;
+      return false;
     }
 
     try {
       if (eigenEditorRef.current) {
         const buffer = await eigenEditorRef.current.saveDocument();
         if (buffer) {
-          const filename = `${documentTitle.replace(/[^a-zA-Z0-9_\-\u0600-\u06FF]/g, '_')}.docx`;
+          const safeName =
+            documentTitle.replace(/[^a-zA-Z0-9_\-\u0600-\u06FF]/g, '_').trim() ||
+            'midadd-document';
+          const filename = `${safeName}.docx`;
           downloadDocxBuffer(buffer, filename);
           deductCredit();
           try {
@@ -379,15 +383,15 @@ export const Editor = forwardRef<EditorHandle, EditorProps>((props, ref) => {
               origin: { y: 0.8 },
             });
           } catch {}
-          return;
+          return true;
         }
       }
-      onExportDocx(formatting.direction);
+      return false;
     } catch (e) {
       console.warn('Real DOCX buffer save failed, falling back to generator:', e);
-      onExportDocx(formatting.direction);
+      return false;
     }
-  }, [documentTitle, onExportDocx, session.credits, formatting.direction]);
+  }, [documentTitle, session.credits]);
 
 
   // Export PDF via genuine print pipeline

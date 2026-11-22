@@ -264,32 +264,26 @@ function PlaygroundApp() {
   // ... (rest of the component state and logic)
 
   // تصدير DOCX مع فحص الأرصدة
-  const handleExportDocx = async (direction: 'rtl' | 'ltr') => {
+  const handleExportDocx = async (exportDirection: 'rtl' | 'ltr') => {
     if (session.credits <= 0) {
       setIsOutOfCreditsOpen(true);
       return;
     }
 
-    if (editorRef.current?.exportDocument) {
-      setIsExporting(true);
-      try {
-        await editorRef.current.exportDocument();
-      } catch (err) {
-        console.error('Error exporting DOCX:', err);
-      } finally {
-        setIsExporting(false);
-      }
-      return;
-    }
-
-    // Fallback
     setIsExporting(true);
     try {
-      const filename = `${documentTitle.replace(
-        /[^a-zA-Z0-9_\-\u0600-\u06FF]/g,
-        '_'
-      )}.docx`;
-      await exportToDocx(markdown, filename, { direction });
+      if (editorRef.current?.exportDocument) {
+        const exportedByEngine = await editorRef.current.exportDocument();
+        if (exportedByEngine) {
+          return;
+        }
+      }
+
+      const safeName =
+        documentTitle.replace(/[^a-zA-Z0-9_\-\u0600-\u06FF]/g, '_').trim() ||
+        'midadd-document';
+      const filename = `${safeName}.docx`;
+      await exportToDocx(markdown, filename, { direction: exportDirection });
 
       deductCredit();
 
